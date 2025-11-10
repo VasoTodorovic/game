@@ -2,18 +2,18 @@ import { useRef, useCallback, useEffect } from 'react'
 import { Sprite, Container, useTick } from '@pixi/react'
 import {
   ANIMATION_SPEED,
-  DEFAULT_X_POS,
-  DEFAULT_Y_POS,
+  DEFAULT_X_POS_CAT,
+  DEFAULT_Y_POS_CAT,
   MOVE_SPEED,
 } from '../../constants/game-world'
-import { useHeroControls } from './useHeroControls'
+import { useHeroControls} from '../Hero/useHeroControls'
 import { Texture } from 'pixi.js'
 import {
   calculateNewTarget,
   checkCanMove,
   handleMovement,
 } from '../../helpers/common'
-import { useHeroAnimation } from './useHeroAnimation'
+import { useCatAnimation2 } from './useCatAnimation2'
 import { Direction } from '../../types/game-world'
 
 interface IHeroProps {
@@ -21,19 +21,18 @@ interface IHeroProps {
   onMove: (gridX: number, gridY: number) => void
 }
 
-export const Hero = ({ texture, onMove }: IHeroProps) => {
-  const position = useRef({ x: DEFAULT_X_POS, y: DEFAULT_Y_POS })
+export const Cat2 = ({ texture, onMove }: IHeroProps) => {
+  const position = useRef({ x: DEFAULT_X_POS_CAT, y: DEFAULT_Y_POS_CAT })
   const targetPosition = useRef<{ x: number; y: number } | null>(null)
   const currentDirection = useRef<Direction | null>(null)
   const { getControlsDirection } = useHeroControls()
   const isMoving = useRef(false)
 
-  const { sprite, updateSprite } = useHeroAnimation({
+  const { sprite, updateSprite } = useCatAnimation2({
     texture,
     frameWidth: 64,
     frameHeight: 64,
-    //on koristi 9 slika a 8 red ima za sva cetiri pravca
-    totalFrames: 9,
+    totalFrames: 8,
     animationSpeed: ANIMATION_SPEED,
   })
 
@@ -87,8 +86,8 @@ export const Hero = ({ texture, onMove }: IHeroProps) => {
           texture={sprite.texture}
           x={position.current.x}
           y={position.current.y}
-          scale={0.5}
-          anchor={[0, 0.4]}
+    scale={0.5}
+        anchor={[-0.3, -0.1]}
         />
       )}
     </Container>

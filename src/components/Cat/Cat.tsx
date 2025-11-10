@@ -1,56 +1,64 @@
-import { useRef, useEffect } from "react";
+// Cat.tsx
+import { useRef, useEffect, useMemo } from "react";
 import { Container, Sprite, useTick } from "@pixi/react";
 import { Texture } from "pixi.js";
 import { useCatAnimation } from "./useCatAnimation";
 import { TILE_SIZE } from "../../constants/game-world";
 
+// Import your assets
+import catUpAsset from "../../assets/cat_up.png";
+import catDownAsset from "../../assets/cat_down.png";
+import catLeftAsset from "../../assets/cat_left.png";
+import catRightAsset from "../../assets/cat_right.png";
+import catJumpAsset from "../../assets/cat_jump.png"; // optional jump texture
+
 interface ICatProps {
-  texture: Texture;
   frame: number;
 }
 
 const ANIMATION_SPEED = 0.2;
-const MOVE_SPEED = 2; // pixels per tick, adjust to taste
+const MOVE_SPEED = 2; // pixels per tick
 
-export const Cat = ({  frame }: ICatProps) => {
+export const Cat = ({ frame }: ICatProps) => {
   const position = useRef({ x: 5, y: 15 }); // starting tile position
   const targetPosition = useRef<{ x: number; y: number } | null>(null);
   const isMoving = useRef(false);
+  const currentDirection = useRef<"up" | "down" | "left" | "right">("down");
 
+  // Preload textures
+  const catTextures = useMemo(
+    () => ({
+      up: Texture.from(catUpAsset),
+      down: Texture.from(catDownAsset),
+      left: Texture.from(catLeftAsset),
+      right: Texture.from(catRightAsset),
+    }),
+    []
+  );
+
+  // Animation for frames
   const { currentTexture, update } = useCatAnimation({
-    texture,
+    texture: catTextures.down, // initial
     frameWidth: 32,
     frameHeight: 32,
     totalFrames: frame,
     animationSpeed: ANIMATION_SPEED,
   });
 
-  // randomly pick next target every 2-4s
+  // Random movement target every 2-4 seconds
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout>;
 
     const setRandomTarget = () => {
-      var dx = 0;
-      var dy = 0;
+      let dx = 0;
+      let dy = 0;
       if (Math.random() < 0.5) {
         dx = Math.random() < 0.5 ? -1 : 1;
-        if (dx > 0 ) {
-          console.log("ide desno");
-        } else {
-          console.log("ide levo");
-
-        }
-
+        currentDirection.current = dx > 0 ? "right" : "left";
       } else {
         dy = Math.random() < 0.5 ? -1 : 1;
-          if (dy > 0 ) {
-            console.log("ide dole");
-          } else {
-            console.log("ide gore");
-          }
+        currentDirection.current = dy > 0 ? "down" : "up";
       }
-
-      // don't move if both dx and dy are 0
 
       targetPosition.current = {
         x: Math.max(position.current.x + dx, 0),
@@ -62,10 +70,10 @@ export const Cat = ({  frame }: ICatProps) => {
     };
 
     setRandomTarget();
-
     return () => clearTimeout(timeoutId);
   }, []);
 
+  // Movement tick
   useTick((delta) => {
     update(delta);
 
@@ -77,15 +85,20 @@ export const Cat = ({  frame }: ICatProps) => {
       const dist = Math.sqrt(dx * dx + dy * dy);
 
       if (dist < MOVE_SPEED) {
-        // reached target
         position.current = { ...targetPosition.current };
         targetPosition.current = null;
         isMoving.current = false;
       } else {
-        // move toward target
         position.current.x += (dx / dist) * (MOVE_SPEED / TILE_SIZE);
         position.current.y += (dy / dist) * (MOVE_SPEED / TILE_SIZE);
         isMoving.current = true;
+
+        // update direction while moving
+        if (Math.abs(dx) > Math.abs(dy)) {
+          currentDirection.current = dx > 0 ? "right" : "left";
+        } else {
+          currentDirection.current = dy > 0 ? "down" : "up";
+        }
       }
     }
   });
@@ -95,7 +108,11 @@ export const Cat = ({  frame }: ICatProps) => {
       x={position.current.x * TILE_SIZE}
       y={position.current.y * TILE_SIZE}
     >
-      <Sprite texture={currentTexture} scale={0.5} anchor={[-0.2, 0]} />
+      <Sprite
+        texture={catTextures[currentDirection.current]}
+        scale={0.5}
+        anchor={[-0.4, 0]}
+      />
     </Container>
   );
 };

@@ -10,10 +10,12 @@ import backgroundAsset from '@/assets/space-stars.jpg'
 import heroAsset from '@/assets/hero.png'
 import coinRedAsset from '@/assets/coin-red.png'
 import coinGoldAsset from '@/assets/coin-gold.png'
-import catAsset from '@/assets/idle.png'
-import catJumpAsset from '@/assets/jump.png'
+import cakeAsset from "@/assets/cake.png";
+import catAsset from "@/assets/cat.png";
 import { Cat } from '../../Cat/Cat'
-import TextBox from '../../textbox/textbox'
+// import TextBox from '../../textbox/textbox'
+import { Cake } from '../../cake/Cake'
+import { Cat2 } from '../../Cat/Cat2'
 
 interface IMainContainerProps {
   canvasSize: { width: number; height: number }
@@ -24,9 +26,19 @@ export const MainContainer = ({
   children,
 }: PropsWithChildren<IMainContainerProps>) => {
   const [heroPosition, setHeroPosition] = useState({ x: 0, y: 0 })
-  const [catPosition,setCatPosition] =useState ({ x: 5, y: 15 } )// 🐱 cat tile position
+  const [catPosition,setCatPosition] =useState ({ x: 0, y:0 } )// 🐱 cat tile position
   const [isTextVisible, setIsTextVisible] = useState(false)
+
+  const updateCatPosition = useCallback((x: number, y: number) => {
+
+    setCatPosition({
+      x: Math.floor(x / TILE_SIZE),
+      y: Math.floor(y / TILE_SIZE),
+    })
+  }, [])
+  //#doradim sta radi useCallback
   const updateHeroPosition = useCallback((x: number, y: number) => {
+
     setHeroPosition({
       x: Math.floor(x / TILE_SIZE),
       y: Math.floor(y / TILE_SIZE),
@@ -73,18 +85,23 @@ export const MainContainer = ({
       setIsTextVisible(true)
     }
   }, [heroPosition])
+  //pamti texture u re=renderu
   const heroTexture = useMemo(() => Texture.from(heroAsset), [])
   const coinTextureRed = useMemo(() => Texture.from(coinRedAsset), [])
   const coinTextureGold = useMemo(() => Texture.from(coinGoldAsset), [])
+  const cackeTexture = useMemo(() => Texture.from(cakeAsset), [])
+  const catTexture = useMemo(() => Texture.from(catAsset), [])
+
   const backgroundTexture = useMemo(() => Texture.from(backgroundAsset), [])
-  const catJumpTexture= useMemo(() => Texture.from(catJumpAsset), [])
 
 return (
   <>
     {/* 🎨 PixiJS Scene */}
     <Container>
       <Sprite
+        //nisam siguran
         texture={backgroundTexture}
+        //ovo je pozadina duzina i visina
         width={canvasSize.width}
         height={canvasSize.height}
       />
@@ -95,10 +112,11 @@ return (
         <Coin texture={coinTextureRed} x={5} y={10} />
         <Coin texture={coinTextureGold} x={6} y={11} />
         {/* <Cat texture={catTexture} x={8} y={10} frame={7} /> */}
-        <Cat  x={catPosition.x} y={catPosition.y} frame={7} />
+        <Cat2  texture={catTexture} onMove={updateCatPosition} />
         {/* <Cat texture={catAttackTexture} x={11} y={10} frame={3} /> */}
+        <Cake texture={cackeTexture} x={11} y={12} />
       </Camera>
-      <TextBox
+      {/* <TextBox
     x={100}
     y={400}
     width={400}
@@ -106,7 +124,7 @@ return (
     visible={isTextVisible}
     content="Meow! You found the space cat 🐱"
     onClose={() => setIsTextVisible(false)}
-  />
+  /> */}
     </Container>
 
   </>)
