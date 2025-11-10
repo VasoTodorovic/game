@@ -6,7 +6,7 @@ import { Hero } from '../../Hero/Hero'
 import { Level } from '../../Levels/Level'
 import { Camera } from '../../Camera/Camera'
 import { Coin } from '../../Coin/Coin'
-import backgroundAsset from '@/assets/space-stars.jpg'
+import backgroundAsset from '@/assets/city.jpg'
 import heroAsset from '@/assets/hero.png'
 import coinRedAsset from '@/assets/coin-red.png'
 import coinGoldAsset from '@/assets/coin-gold.png'
@@ -110,11 +110,17 @@ return (
         <Level />
         <Hero texture={heroTexture} onMove={updateHeroPosition} />
         <Coin texture={coinTextureRed} x={5} y={10} />
+        <Cake texture={cackeTexture} x_start={TILE_SIZE*1} y_start={TILE_SIZE*1} onMove={updateCatPosition}  />
+        <Cake texture={cackeTexture} x_start={TILE_SIZE*7} y_start={TILE_SIZE*4} onMove={updateCatPosition}  />
+        <Cake texture={cackeTexture} x_start={TILE_SIZE*7} y_start={TILE_SIZE*4} onMove={updateCatPosition}  />
+        <Cake texture={cackeTexture} x_start={TILE_SIZE*21} y_start={TILE_SIZE*3} onMove={updateCatPosition}  />
+        <Cake texture={cackeTexture} x_start={TILE_SIZE*24} y_start={TILE_SIZE*3} onMove={updateCatPosition}  />
+        <Cake texture={cackeTexture} x_start={TILE_SIZE*1} y_start={TILE_SIZE*14} onMove={updateCatPosition}  />
+        <Cake texture={cackeTexture} x_start={TILE_SIZE*18} y_start={TILE_SIZE*10} onMove={updateCatPosition}  />
         <Coin texture={coinTextureGold} x={6} y={11} />
         {/* <Cat texture={catTexture} x={8} y={10} frame={7} /> */}
         <Cat2  texture={catTexture} onMove={updateCatPosition} />
         {/* <Cat texture={catAttackTexture} x={11} y={10} frame={3} /> */}
-        <Cake texture={cackeTexture} x={11} y={12} />
       </Camera>
       {/* <TextBox
     x={100}

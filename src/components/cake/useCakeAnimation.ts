@@ -1,13 +1,14 @@
-import { useRef, useState } from 'react'
-import { Sprite, Texture, Rectangle } from 'pixi.js'
+import { useState, useRef } from 'react'
+import { TILE_SIZE } from '../../constants/game-world'
+import { Rectangle, Sprite, Texture } from 'pixi.js'
+import { Direction } from '../../types/game-world'
 
-interface UseCakeAnimationProps {
+interface UseSpriteAnimationProps {
   texture: Texture
   frameWidth: number
   frameHeight: number
   totalFrames: number
   animationSpeed: number
-  row?: number // ✅ Added row parameter (0-indexed)
 }
 
 export const useCakeAnimation = ({
@@ -16,43 +17,62 @@ export const useCakeAnimation = ({
   frameHeight,
   totalFrames,
   animationSpeed,
-  row = 0, // ✅ Default to first row (0)
-}: UseCakeAnimationProps) => {
-  const [currentTexture, setCurrentTexture] = useState(
-    new Texture(
-      texture.baseTexture,
-      new Rectangle(0, row * frameHeight, frameWidth, frameHeight) // ✅ Use row for y-coordinate
-    )
-  )
-
-  const spriteRef = useRef<Sprite>(new Sprite(currentTexture))
+}: UseSpriteAnimationProps) => {
+  const [sprite, setSprite] = useState<Sprite | null>(null)
   const frameRef = useRef(0)
   const elapsedTimeRef = useRef(0)
 
-  const updateSprite = (delta: number) => {
-    elapsedTimeRef.current += delta
-
-    const frameDuration = 1 / animationSpeed
-
-    if (elapsedTimeRef.current >= frameDuration) {
-      elapsedTimeRef.current = 0
-      frameRef.current = (frameRef.current + 1) % totalFrames
-
-      const newFrame = new Rectangle(
-        frameRef.current * frameWidth,
-        row * frameHeight, // ✅ Use row for y-coordinate
-        frameWidth,
-        frameHeight
-      )
-
-      const newTexture = new Texture(texture.baseTexture, newFrame)
-      spriteRef.current.texture = newTexture
-      setCurrentTexture(newTexture)
+  const getRowByDirection = (direction: Direction | null) => {
+    switch (direction) {
+      case 'UP':
+        return 0
+      case 'LEFT':
+        return 1
+      case 'DOWN':
+        return 0
+      case 'RIGHT':
+        return 1
+      default:
+        return 0
     }
   }
 
-  return {
-    sprite: spriteRef.current,
-    updateSprite,
+  const createSprite = (row: number, column: number) => {
+    const frame = new Texture(
+      texture.baseTexture,
+      new Rectangle(
+        column * frameWidth,
+        row * frameHeight,
+        frameWidth,
+        frameHeight
+      )
+    )
+
+    const newSprite = new Sprite(frame)
+    newSprite.width = TILE_SIZE
+    newSprite.height = TILE_SIZE
+
+    return newSprite
   }
+
+  const updateSprite = (direction: Direction | null, isMoving: boolean) => {
+    const row = getRowByDirection(direction)
+    let column = 0
+
+    if (isMoving) {
+      elapsedTimeRef.current += animationSpeed
+
+      if (elapsedTimeRef.current >= 1) {
+        elapsedTimeRef.current = 0
+        frameRef.current = (frameRef.current + 1) % totalFrames
+      }
+
+      column = frameRef.current
+    }
+
+    const newSprite = createSprite(row, column)
+    setSprite(newSprite)
+  }
+
+  return { sprite, updateSprite }
 }

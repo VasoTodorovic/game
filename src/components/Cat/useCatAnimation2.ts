@@ -25,15 +25,15 @@ export const useCatAnimation2 = ({
   const getRowByDirection = (direction: Direction | null) => {
     switch (direction) {
       case 'UP':
-        return 4
-      case 'LEFT':
         return 3
-      case 'DOWN':
-        return 1
-      case 'RIGHT':
+      case 'LEFT':
         return 2
-      default:
+      case 'DOWN':
+        return 0
+      case 'RIGHT':
         return 1
+      default:
+        return 0
     }
   }
 

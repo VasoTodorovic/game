@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import { Direction } from '../../types/game-world'
 
 const DIRECTION_KEYS: Record<string, Direction> = {
@@ -10,6 +10,26 @@ const DIRECTION_KEYS: Record<string, Direction> = {
   ArrowDown: 'DOWN',
   ArrowLeft: 'LEFT',
   ArrowRight: 'RIGHT',
+}
+
+export const useCatControls = () => {
+  const directions: Direction[] = ['UP', 'DOWN', 'LEFT', 'RIGHT']
+  const [catDirection, setCatDirection] = useState<Direction>('DOWN')
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      const randomIndex = Math.floor(Math.random() * directions.length)
+      setCatDirection(directions[randomIndex])
+    }, 2000)
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [])
+
+  const getCatDirection = useCallback(() => catDirection, [catDirection])
+
+  return { getCatDirection }
 }
 
 export const useHeroControls = () => {

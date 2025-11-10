@@ -6,7 +6,7 @@ import {
   DEFAULT_Y_POS_CAT,
   MOVE_SPEED,
 } from '../../constants/game-world'
-import { useHeroControls} from '../Hero/useHeroControls'
+import { useCatControls} from '../Hero/useHeroControls'
 import { Texture } from 'pixi.js'
 import {
   calculateNewTarget,
@@ -25,7 +25,7 @@ export const Cat2 = ({ texture, onMove }: IHeroProps) => {
   const position = useRef({ x: DEFAULT_X_POS_CAT, y: DEFAULT_Y_POS_CAT })
   const targetPosition = useRef<{ x: number; y: number } | null>(null)
   const currentDirection = useRef<Direction | null>(null)
-  const { getControlsDirection } = useHeroControls()
+  const { getCatDirection} = useCatControls()
   const isMoving = useRef(false)
 
   const { sprite, updateSprite } = useCatAnimation2({
@@ -52,7 +52,7 @@ export const Cat2 = ({ texture, onMove }: IHeroProps) => {
   }, [])
 
   useTick((delta) => {
-    const direction = getControlsDirection()
+    const direction = getCatDirection()
     if (direction) {
       setNextTarget(direction)
     }
@@ -87,7 +87,7 @@ export const Cat2 = ({ texture, onMove }: IHeroProps) => {
           x={position.current.x}
           y={position.current.y}
     scale={0.5}
-        anchor={[-0.3, -0.1]}
+        anchor={[-0.3, 0.1]}
         />
       )}
     </Container>
