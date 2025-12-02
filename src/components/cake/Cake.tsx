@@ -11,8 +11,6 @@ import {
   handleMovement,
 } from '../../helpers/common'
 import {
-  DEFAULT_X_POS_CAT,
-  DEFAULT_Y_POS_CAT,
   MOVE_SPEED,
   TILE_SIZE,
 } from '../../constants/game-world'

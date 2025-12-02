@@ -1,7 +1,7 @@
 import { useState, useMemo, PropsWithChildren, useCallback, useEffect } from 'react'
 import { Texture } from 'pixi.js'
 import { Container, Sprite } from '@pixi/react'
-import { TILE_SIZE } from '../../../constants/game-world'
+import { DEFAULT_X_POS, DEFAULT_X_POS_CAT, DEFAULT_Y_POS, DEFAULT_Y_POS_CAT, TILE_SIZE } from '../../../constants/game-world'
 import { Hero } from '../../Hero/Hero'
 import { Level } from '../../Levels/Level'
 import { Camera } from '../../Camera/Camera'
@@ -25,7 +25,7 @@ export const MainContainer = ({
   canvasSize,
   children,
 }: PropsWithChildren<IMainContainerProps>) => {
-  const [heroPosition, setHeroPosition] = useState({ x: 0, y: 0 })
+  const [heroPosition, setHeroPosition] = useState({ x: 1, y: 0 })
   const [catPosition,setCatPosition] =useState ({ x: 0, y:0 } )// 🐱 cat tile position
   const [isTextVisible, setIsTextVisible] = useState(false)
 
@@ -44,39 +44,10 @@ export const MainContainer = ({
       y: Math.floor(y / TILE_SIZE),
     })
   }, [])
-/* useEffect(() => {
-  let timeoutId: ReturnType<typeof setTimeout>;
-
-  const doAction = () => {
-    console.log("Action happened!", new Date().toLocaleTimeString());
-    setCatPosition(prev => {
-      // move randomly -1 or +1
-      //
-      //
-    var dx=0;
-     var dy=0;
-      if(Math.random()<0.5){
-      dx = Math.random() < 0.5 ? -1 : 1;}
-      else{
-      dy = Math.random() < 0.5 ? -1 : 1;}
-
-      return {
-        x: Math.max(prev.x + dx, 0),
-        y: Math.max(prev.y + dy, 0),
-      };
-    });
-
-    // pick a random delay between 2s and 4s
-    const randomDelay = Math.random() * (4000 - 2000) + 2000;
-    timeoutId = setTimeout(doAction, randomDelay);
-  };
-
-  doAction();
-
-  return () => clearTimeout(timeoutId);
-}, []);; */
     // 🧠 Collision detection
  useEffect(() => {
+    console.log('hero ' +heroPosition.y);
+    console.log('cat' + catPosition.x);
     if (
       heroPosition.x === catPosition.x &&
       heroPosition.y === catPosition.y
@@ -96,7 +67,6 @@ export const MainContainer = ({
 
 return (
   <>
-    {/* 🎨 PixiJS Scene */}
     <Container>
       <Sprite
         //nisam siguran
@@ -118,19 +88,8 @@ return (
         <Cake texture={cackeTexture} x_start={TILE_SIZE*1} y_start={TILE_SIZE*14} onMove={updateCatPosition}  />
         <Cake texture={cackeTexture} x_start={TILE_SIZE*18} y_start={TILE_SIZE*10} onMove={updateCatPosition}  />
         <Coin texture={coinTextureGold} x={6} y={11} />
-        {/* <Cat texture={catTexture} x={8} y={10} frame={7} /> */}
         <Cat2  texture={catTexture} onMove={updateCatPosition} />
-        {/* <Cat texture={catAttackTexture} x={11} y={10} frame={3} /> */}
       </Camera>
-      {/* <TextBox
-    x={100}
-    y={400}
-    width={400}
-    height={120}
-    visible={isTextVisible}
-    content="Meow! You found the space cat 🐱"
-    onClose={() => setIsTextVisible(false)}
-  /> */}
     </Container>
 
   </>)
