@@ -12,9 +12,12 @@ import heroAsset from '@/assets/hero.png'
 import coinRedAsset from '@/assets/coin-red.png'
 import cakeAsset from "@/assets/cake.png"
 import catAsset from "@/assets/cat.png"
-import hindusiSound from '@/assets/Hindusi.mpeg'
-import oliverSound from '@/assets/Oliver Dragojevic.mpeg'
-import oliverSoundPape from '@/assets/Oliver Dragojevic-Oprosti Mi Pape.mp3'
+import hindusiSound from '@/assets/Hero sound Hindusi random.mpeg'
+import belaCigankaSound from '@/assets/Hero sound Bela Ciganka radnom.mpeg'
+import oliverSound from '@/assets/Hero Sound Vinyl.mpeg'
+import oliverSoundPape from '@/assets/Background music Pape.mp3'
+import cakeEffectSound from '@/assets/Game effect cake colision.mpeg'
+import completedEffectSound from '@/assets/Game effect completed.mpeg'
 import { Cake } from '../../cake/Cake'
 import { Cat2 } from '../../Cat/Cat2'
 import { Vinyl } from '../../Vinyl/Vinyl'
@@ -26,14 +29,14 @@ interface IMainContainerProps {
 
 const VINYL_TILE = { x: 22, y: 11 }
 
-const ALL_COIN_POSITIONS = COLLISION_MAP.reduce<{ x: number; y: number }[]>((acc, cell, index) => {
-  const x = index % COLS
-  const y = Math.floor(index / COLS)
-  if (cell === 0 && !(x === VINYL_TILE.x && y === VINYL_TILE.y)) {
-    acc.push({ x, y })
-  }
-  return acc
-}, [])
+const ALL_COIN_POSITIONS = COLLISION_MAP
+  .reduce<{ x: number; y: number }[]>((acc, cell, index) => {
+    const x = index % COLS
+    const y = Math.floor(index / COLS)
+    if (cell === 0 && !(x === VINYL_TILE.x && y === VINYL_TILE.y)) acc.push({ x, y })
+    return acc
+  }, [])
+  .filter((_, i) => i % 3 === 0)
 
 const CHASE_THRESHOLD = Math.floor(ALL_COIN_POSITIONS.length / 7)
 const MAX_LIVES = 3
@@ -56,12 +59,16 @@ const scoreStyle       = new TextStyle({ fill: 0xffffff, fontSize: 20, fontWeigh
 const livesStyle       = new TextStyle({ fill: 0xff4444, fontSize: 22, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
 const gameOverStyle    = new TextStyle({ fill: 0xff2222, fontSize: 52, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 6 })
 const gameOverSubStyle = new TextStyle({ fill: 0xffffff, fontSize: 22, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
-const heroSpeakingStyle = new TextStyle({ fontSize: 36, fill: 0xffffff, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
+const heroSpeakingStyle    = new TextStyle({ fontSize: 36, fill: 0xffffff, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
+const instrTitleStyle      = new TextStyle({ fill: 0xffe066, fontSize: 36, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 5 })
+const instrTextStyle       = new TextStyle({ fill: 0xffffff, fontSize: 22, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3, lineHeight: 38 })
+const instrPromptStyle     = new TextStyle({ fill: 0xaaaaaa, fontSize: 18, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 2 })
 
 export const MainContainer = ({
   canvasSize,
   children,
 }: PropsWithChildren<IMainContainerProps>) => {
+  const [showInstructions, setShowInstructions] = useState(true)
   const [heroPosition, setHeroPosition]   = useState({ x: 1, y: 0 })
   const [cat2Position, setCat2Position]   = useState({ x: 0, y: 0 })
   const [cakePositions, setCakePositions] = useState<{ x: number; y: number }[]>(
@@ -75,71 +82,145 @@ export const MainContainer = ({
   const [catMessage, setCatMessage]         = useState<string | null>(null)
   const [cakeMessage, setCakeMessage]       = useState<string | null>(null)
   const [heroSpeaking, setHeroSpeaking]     = useState(false)
-  const catTimeout    = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const cakeTimeout   = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const invincibleRef = useRef(false)
+  const catTimeout      = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cakeTimeout     = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const invincibleRef        = useRef(false)
+  const playOliverRef        = useRef<(() => void) | null>(null)
+  const interruptRandomRef   = useRef<(() => void) | null>(null)
+  const playCakeEffectRef    = useRef<(() => void) | null>(null)
+  const playCompletedRef     = useRef<(() => void) | null>(null)
+  const completedPlayedRef   = useRef(false)
 
   useEffect(() => {
-    let oliverTimer:  ReturnType<typeof setTimeout>
-    let hindusiTimer: ReturnType<typeof setTimeout>
-    let hindusiAudio: HTMLAudioElement | null = null
+    if (!showInstructions) return
+    const dismiss = () => setShowInstructions(false)
+    window.addEventListener('keydown', dismiss)
+    window.addEventListener('click', dismiss)
+    return () => {
+      window.removeEventListener('keydown', dismiss)
+      window.removeEventListener('click', dismiss)
+    }
+  }, [showInstructions])
 
-    // Hindusi = hero speaking → shows icon
-    const scheduleHindusi = () => {
-      const delay = Math.random() * 30000 + 20000
-      hindusiTimer = setTimeout(() => {
-        hindusiAudio = new Audio(hindusiSound)
+  useEffect(() => {
+    let papeTimer:        ReturnType<typeof setTimeout>
+    let randomSoundTimer: ReturnType<typeof setTimeout>
+    let randomAudio: HTMLAudioElement | null = null
+    let oliverPlaying = false
+
+    // Random sounds: Bela Ciganka ×2 + Hindusi ×2, shuffled, looping forever.
+    // Completely independent — not tied to vinyl or Pape.
+    // If a hero sound is active, back off and retry in 3s.
+    const playRandomQueue = (queue: string[], index: number) => {
+      if (index >= queue.length) {
+        // Reshuffle and loop
+        const next = [belaCigankaSound, belaCigankaSound, hindusiSound, hindusiSound]
+        for (let i = next.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1))
+          ;[next[i], next[j]] = [next[j], next[i]]
+        }
+        playRandomQueue(next, 0)
+        return
+      }
+      const delay = index === 0 ? Math.random() * 25000 + 15000 : Math.random() * 8000 + 4000
+      randomSoundTimer = setTimeout(() => {
+        if (oliverPlaying) {
+          randomSoundTimer = setTimeout(() => playRandomQueue(queue, index), 3000)
+          return
+        }
+        randomAudio = new Audio(queue[index])
         setHeroSpeaking(true)
-        hindusiAudio.play().catch(() => {})
-        hindusiAudio.addEventListener('ended', () => {
+        randomAudio.play().catch(() => {})
+        randomAudio.addEventListener('ended', () => {
           setHeroSpeaking(false)
-          scheduleHindusi()
+          playRandomQueue(queue, index + 1)
         })
       }, delay)
     }
 
-    let papeTimer: ReturnType<typeof setTimeout>
+    // Kick off random queue immediately on mount
+    const initialQueue = [belaCigankaSound, belaCigankaSound, hindusiSound, hindusiSound]
+    for (let i = initialQueue.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[initialQueue[i], initialQueue[j]] = [initialQueue[j], initialQueue[i]]
+    }
+    playRandomQueue(initialQueue, 0)
 
+    // Pape = background music after vinyl sequence, no icon
     const startPape = () => {
-      papeTimer = setTimeout(() => {
-        pape.play().catch(scheduleHindusi)
-      }, 1500)
+      papeTimer = setTimeout(() => { pape.play().catch(() => {}) }, 1500)
     }
 
-    // Pape = background music → no icon, just plays
     const pape = new Audio(oliverSoundPape)
     pape.preload = 'auto'
-    pape.addEventListener('ended', scheduleHindusi)
-    pape.addEventListener('error', scheduleHindusi)
 
     let oliverDone = false
     const afterOliver = () => {
       if (oliverDone) return
       oliverDone = true
+      oliverPlaying = false
       setHeroSpeaking(false)
+      oliverDone = false
       startPape()
     }
 
-    // Oliver = hero speaking → shows icon
+    // Hero Sound Vinyl — triggered only by vinyl collision
     const oliver = new Audio(oliverSound)
     oliver.preload = 'auto'
     oliver.addEventListener('ended', afterOliver)
     oliver.addEventListener('error', afterOliver)
 
-    // Start with Oliver 10 s after load
-    const startTimer = setTimeout(() => {
+    playOliverRef.current = () => {
+      if (oliverPlaying) return
+      oliverPlaying = true
+      oliver.currentTime = 0
       setHeroSpeaking(true)
       oliver.play().catch(afterOliver)
-    }, 10000)
+    }
+
+    interruptRandomRef.current = () => {
+      clearTimeout(randomSoundTimer)
+      if (randomAudio) {
+        randomAudio.pause()
+        randomAudio = null
+      }
+      setHeroSpeaking(false)
+    }
 
     return () => {
-      clearTimeout(startTimer)
       clearTimeout(papeTimer)
-      clearTimeout(hindusiTimer)
+      clearTimeout(randomSoundTimer)
       pape.pause()
       oliver.pause()
-      hindusiAudio?.pause()
+      randomAudio?.pause()
       setHeroSpeaking(false)
+      playOliverRef.current = null
+      interruptRandomRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    const cakeAudio = new Audio(cakeEffectSound)
+    cakeAudio.preload = 'auto'
+    playCakeEffectRef.current = () => {
+      interruptRandomRef.current?.()
+      cakeAudio.currentTime = 0
+      cakeAudio.play().catch(() => {})
+    }
+
+    const completedAudio = new Audio(completedEffectSound)
+    completedAudio.preload = 'auto'
+    playCompletedRef.current = () => {
+      interruptRandomRef.current?.()
+      completedAudio.currentTime = 0
+      completedAudio.play().catch(() => {})
+    }
+
+    return () => {
+      cakeAudio.pause()
+      completedAudio.pause()
+      playCakeEffectRef.current = null
+      playCompletedRef.current = null
     }
   }, [])
 
@@ -175,6 +256,13 @@ export const MainContainer = ({
     []
   )
 
+  const drawInstrOverlay = useCallback((g: any) => {
+    g.clear()
+    g.beginFill(0x000000, 0.88)
+    g.drawRoundedRect(canvasSize.width / 2 - 280, canvasSize.height / 2 - 200, 560, 400, 18)
+    g.endFill()
+  }, [canvasSize.width, canvasSize.height])
+
   const drawOverlay = useCallback((g: any) => {
     g.clear()
     g.beginFill(0x000000, 0.75)
@@ -197,16 +285,25 @@ export const MainContainer = ({
     }
   }, [heroPosition])
 
+  // Vinyl collision — hero steps on vinyl tile → play Oliver
+  useEffect(() => {
+    if (heroPosition.x === VINYL_TILE.x && heroPosition.y === VINYL_TILE.y) {
+      playOliverRef.current?.()
+    }
+  }, [heroPosition])
+
   // Cat collision — always active while alive
   useEffect(() => {
     if (gameOver) return
     if (heroPosition.x === cat2Position.x && heroPosition.y === cat2Position.y) {
-      showCatMsg('🐾 Cat got you!')
+      showCatMsg('🐾 Pet the cat!')
     }
   }, [heroPosition, cat2Position])
 
   // Cake collision — catch in chase mode, lose life in normal mode
   useEffect(() => {
+    if(!showInstructions)
+{
     if (gameOver) return
     const hitIndex = cakePositions.findIndex(
       (c, i) => !deadCakes.has(i) && c.x === heroPosition.x && c.y === heroPosition.y
@@ -216,10 +313,12 @@ export const MainContainer = ({
     if (chaseMode) {
       setDeadCakes(prev => new Set([...prev, hitIndex]))
       setChaseMode(false)
+      playCakeEffectRef.current?.()
       showCakeMsg('🎂 Cake caught!')
     } else if (!invincibleRef.current) {
       invincibleRef.current = true
       setTimeout(() => { invincibleRef.current = false }, 2000)
+      playCakeEffectRef.current?.()
       showCakeMsg('🎂 Cake got you!')
       setLives(prev => {
         const next = prev - 1
@@ -227,7 +326,16 @@ export const MainContainer = ({
         return next
       })
     }
+ }
   }, [heroPosition, chaseMode, cakePositions])
+
+  // All coins collected — play completion effect once
+  useEffect(() => {
+    if (collectedCoins.size === ALL_COIN_POSITIONS.length && ALL_COIN_POSITIONS.length > 0 && !completedPlayedRef.current) {
+      completedPlayedRef.current = true
+      playCompletedRef.current?.()
+    }
+  }, [collectedCoins])
 
   const heroTexture       = useMemo(() => Texture.from(heroAsset), [])
   const coinTexture       = useMemo(() => Texture.from(coinRedAsset), [])
@@ -263,7 +371,7 @@ export const MainContainer = ({
 
         {/* Score — upper right */}
         <Text
-          text={`🪙 ${collectedCoins.size} / ${ALL_COIN_POSITIONS.length}`}
+          text={`👣 Steps: ${collectedCoins.size} / ${ALL_COIN_POSITIONS.length}`}
           x={canvasSize.width - 10}
           y={10}
           anchor={{ x: 1, y: 0 }}
@@ -279,10 +387,19 @@ export const MainContainer = ({
           style={livesStyle}
         />
 
+        {/* Cakes remaining — upper right, below lives */}
+        <Text
+          text={`🎂 ${deadCakes.size} / ${CAKE_STARTS.length}`}
+          x={canvasSize.width - 10}
+          y={66}
+          anchor={{ x: 1, y: 0 }}
+          style={cakeAlertStyle}
+        />
+
         {/* Chase mode banner */}
         {chaseMode && !gameOver && (
           <Text
-            text="🎂 CHASE MODE! Catch a cake!"
+            text="🎂 CHASE MODE! Catch a cake! You are in a calorie deficit."
             x={canvasSize.width / 2}
             y={16}
             anchor={{ x: 0.5, y: 0 }}
@@ -292,7 +409,7 @@ export const MainContainer = ({
 
         {allCollected && !gameOver && (
           <Text
-            text="🎉 You collected all coins!"
+            text="🚀Čestitam, presli ste dosta koraka danas Do lete izgledacete kao RAKETA🚀!"
             x={canvasSize.width / 2}
             y={canvasSize.height / 2 - 80}
             anchor={0.5}
@@ -318,12 +435,45 @@ export const MainContainer = ({
           <Text text={cakeMessage} x={canvasSize.width / 2} y={canvasSize.height / 2 + 10} anchor={0.5} style={cakeAlertStyle} />
         )}
 
+        {/* Instructions overlay — shown on first load */}
+        {showInstructions && (
+          <>
+            <Graphics draw={drawInstrOverlay} />
+            <Text
+              text="How to Play"
+              x={canvasSize.width / 2}
+              y={canvasSize.height / 2 - 170}
+              anchor={0.5}
+              style={instrTitleStyle}
+            />
+            <Text
+              text={
+                '👣  Walk over every step to collect it\n' +
+                '🎂  Collect enough steps to chase the cakes!\n' +
+                '🐱  Find and pet the cat\n' +
+                '🎵  Discover the vinyl player'
+              }
+              x={canvasSize.width / 2}
+              y={canvasSize.height / 2 - 90}
+              anchor={{ x: 0.5, y: 0 }}
+              style={instrTextStyle}
+            />
+            <Text
+              text="Press any key or click to start"
+              x={canvasSize.width / 2}
+              y={canvasSize.height / 2 + 160}
+              anchor={0.5}
+              style={instrPromptStyle}
+            />
+          </>
+        )}
+
         {/* Game over overlay */}
         {gameOver && (
           <>
             <Graphics draw={drawOverlay} />
             <Text
-              text="💀 GAME OVER"
+              text="🎂GAME OVER you eat to much cake this time 🎂"
               x={canvasSize.width / 2}
               y={canvasSize.height / 2 - 50}
               anchor={0.5}
