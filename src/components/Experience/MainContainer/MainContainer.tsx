@@ -40,7 +40,15 @@ const ALL_COIN_POSITIONS = COLLISION_MAP
 
 const CHASE_THRESHOLD = Math.floor(ALL_COIN_POSITIONS.length / 7)
 const MAX_LIVES = 3
-const BOOST_SECONDS = 10
+const ORANGE_CAT_INDEX = 0
+const ORANGE_BOOST_SECONDS = 10
+const CAT_BOOST_SECONDS = 5
+
+const CAT_STARTS = [
+  { x: TILE_SIZE * 4,  y: TILE_SIZE * 15 },
+  { x: TILE_SIZE * 22, y: TILE_SIZE * 4  },
+  { x: TILE_SIZE * 12, y: TILE_SIZE * 8  },
+]
 
 const CAKE_STARTS = [
   { x: TILE_SIZE * 1,  y: TILE_SIZE * 1  },
@@ -69,7 +77,9 @@ export const MainContainer = ({
 }: PropsWithChildren<IMainContainerProps>) => {
   const [showInstructions, setShowInstructions] = useState(true)
   const [heroPosition, setHeroPosition]   = useState({ x: 1, y: 0 })
-  const [cat2Position, setCat2Position]   = useState({ x: 0, y: 0 })
+  const [catPositions, setCatPositions]   = useState<{ x: number; y: number }[]>(
+    CAT_STARTS.map(s => ({ x: Math.floor(s.x / TILE_SIZE), y: Math.floor(s.y / TILE_SIZE) }))
+  )
   const [cakePositions, setCakePositions] = useState<{ x: number; y: number }[]>(
     CAKE_STARTS.map(s => ({ x: Math.floor(s.x / TILE_SIZE), y: Math.floor(s.y / TILE_SIZE) }))
   )
@@ -82,6 +92,8 @@ export const MainContainer = ({
   const [cakeMessage, setCakeMessage]       = useState<string | null>(null)
   const [heroSpeaking, setHeroSpeaking]     = useState(false)
   const [boostTimeLeft, setBoostTimeLeft]   = useState(0)
+  const [oliverBoost, setOliverBoost]       = useState(false)
+  const oliverBoostRef                      = useRef(false)
   const catTimeout      = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cakeTimeout     = useRef<ReturnType<typeof setTimeout> | null>(null)
   const invincibleRef        = useRef(false)
@@ -153,6 +165,19 @@ export const MainContainer = ({
 
     const pape = new Audio(oliverSoundPape)
     pape.preload = 'auto'
+
+    // Oliver boost is active only while the Pape background music plays
+    const boostOn = () => {
+      setOliverBoost(true)
+      oliverBoostRef.current = true
+    }
+    const boostOff = () => {
+      setOliverBoost(false)
+      oliverBoostRef.current = false
+    }
+    pape.addEventListener('play', boostOn)
+    pape.addEventListener('pause', boostOff)
+    pape.addEventListener('ended', boostOff)
 
     let oliverDone = false
     const afterOliver = () => {
@@ -236,9 +261,17 @@ export const MainContainer = ({
     cakeTimeout.current = setTimeout(() => setCakeMessage(null), 2000)
   }
 
-  const updateCat2Position = useCallback((x: number, y: number) => {
-    setCat2Position({ x: Math.floor(x / TILE_SIZE), y: Math.floor(y / TILE_SIZE) })
-  }, [])
+  const catUpdaters = useMemo(
+    () =>
+      CAT_STARTS.map((_, i) => (x: number, y: number) => {
+        setCatPositions(prev => {
+          const next = [...prev]
+          next[i] = { x: Math.floor(x / TILE_SIZE), y: Math.floor(y / TILE_SIZE) }
+          return next
+        })
+      }),
+    []
+  )
 
   const updateHeroPosition = useCallback((x: number, y: number) => {
     setHeroPosition({ x: Math.floor(x / TILE_SIZE), y: Math.floor(y / TILE_SIZE) })
@@ -325,11 +358,19 @@ export const MainContainer = ({
   // Cat collision — always active while alive
   useEffect(() => {
     if (gameOver) return
-    if (heroPosition.x === cat2Position.x && heroPosition.y === cat2Position.y) {
-      showCatMsg('🐾 Pet the cat! ⚡ Speed boost!')
-      setBoostTimeLeft(BOOST_SECONDS)
+    const catIndex = catPositions.findIndex(
+      c => heroPosition.x === c.x && heroPosition.y === c.y
+    )
+    if (catIndex !== -1) {
+      if (catIndex === ORANGE_CAT_INDEX) {
+        showCatMsg('🐾 Pet the cat! ⚡ Speed boost! ova macka je ulizica')
+        setBoostTimeLeft(ORANGE_BOOST_SECONDS)
+      } else {
+        showCatMsg('🐾 Pet the cat! ⚡ Speed boost')
+        setBoostTimeLeft(CAT_BOOST_SECONDS)
+      }
     }
-  }, [heroPosition, cat2Position])
+  }, [heroPosition, catPositions])
 
   // Speed boost countdown — tick down once per second
   useEffect(() => {
@@ -359,7 +400,7 @@ export const MainContainer = ({
       playCakeEffectRef.current?.()
       showCakeMsg('🎂 Cake got you!')
       setLives(prev => {
-        const next = prev - 1
+        const next = prev - (oliverBoostRef.current ? 0.5 : 1)
         if (next <= 0) setGameOver(true)
         return next
       })
@@ -383,7 +424,10 @@ export const MainContainer = ({
   const vinylTexture      = useMemo(() => Texture.from(vinylAsset), [])
 
   const allCollected = collectedCoins.size === ALL_COIN_POSITIONS.length
-  const heartsText   = '❤️'.repeat(lives) + '🖤'.repeat(MAX_LIVES - lives)
+  const heartsText =
+    '❤️'.repeat(Math.floor(lives)) +
+    (lives % 1 !== 0 ? '💔' : '') +
+    '🖤'.repeat(Math.floor(MAX_LIVES - lives))
 
   return (
     <>
@@ -404,11 +448,20 @@ export const MainContainer = ({
           />
           {CAKE_STARTS.map((start, i) =>
             !deadCakes.has(i) ? (
-              <Cake key={i} texture={cackeTexture} x_start={start.x} y_start={start.y} onMove={cakeUpdaters[i]} />
+              <Cake key={i} texture={cackeTexture} x_start={start.x} y_start={start.y} onMove={cakeUpdaters[i]} heroPosition={heroPosition} fleeing={chaseMode} />
             ) : null
           )}
           <Vinyl texture={vinylTexture} tileX={VINYL_TILE.x} tileY={VINYL_TILE.y} />
-          <Cat2 texture={catTexture} onMove={updateCat2Position} />
+          {CAT_STARTS.map((start, i) => (
+            <Cat2
+              key={i}
+              texture={catTexture}
+              onMove={catUpdaters[i]}
+              startX={start.x}
+              startY={start.y}
+              tint={i === ORANGE_CAT_INDEX ? 0xff7700 : undefined}
+            />
+          ))}
         </Camera>
 
         {/* Score — upper right */}
@@ -444,6 +497,17 @@ export const MainContainer = ({
             text={`⚡ Speed x2 — ${boostTimeLeft}s`}
             x={canvasSize.width - 10}
             y={98}
+            anchor={{ x: 1, y: 0 }}
+            style={scoreStyle}
+          />
+        )}
+
+        {/* Oliver boost indicator — upper right */}
+        {oliverBoost && !gameOver && (
+          <Text
+            text="🎵 Oliver boost — cakes deal half damage"
+            x={canvasSize.width - 10}
+            y={126}
             anchor={{ x: 1, y: 0 }}
             style={scoreStyle}
           />

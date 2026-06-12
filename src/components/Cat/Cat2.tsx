@@ -19,10 +19,19 @@ import { Direction } from '../../types/game-world'
 interface IHeroProps {
   texture: Texture
   onMove: (gridX: number, gridY: number) => void
+  startX?: number
+  startY?: number
+  tint?: number
 }
 
-export const Cat2 = ({ texture, onMove }: IHeroProps) => {
-  const position = useRef({ x: DEFAULT_X_POS_CAT, y: DEFAULT_Y_POS_CAT })
+export const Cat2 = ({
+  texture,
+  onMove,
+  startX = DEFAULT_X_POS_CAT,
+  startY = DEFAULT_Y_POS_CAT,
+  tint = 0xffffff,
+}: IHeroProps) => {
+  const position = useRef({ x: startX, y: startY })
   const targetPosition = useRef<{ x: number; y: number } | null>(null)
   const currentDirection = useRef<Direction | null>(null)
   const { getCatDirection} = useCatControls()
@@ -86,7 +95,7 @@ export const Cat2 = ({ texture, onMove }: IHeroProps) => {
           texture={sprite.texture}
           x={position.current.x}
           y={position.current.y}
-          tint={0xff7700}
+          tint={tint}
           scale={0.5}
           anchor={[-0.3, 0.1]}
         />
