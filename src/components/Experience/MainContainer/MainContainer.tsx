@@ -17,13 +17,21 @@ import oliverSound from '@/assets/Oliver Dragojevic.mpeg'
 import oliverSoundPape from '@/assets/Oliver Dragojevic-Oprosti Mi Pape.mp3'
 import { Cake } from '../../cake/Cake'
 import { Cat2 } from '../../Cat/Cat2'
+import { Vinyl } from '../../Vinyl/Vinyl'
+import vinylAsset from '@/assets/Vinyl.png'
 
 interface IMainContainerProps {
   canvasSize: { width: number; height: number }
 }
 
+const VINYL_TILE = { x: 22, y: 11 }
+
 const ALL_COIN_POSITIONS = COLLISION_MAP.reduce<{ x: number; y: number }[]>((acc, cell, index) => {
-  if (cell === 0) acc.push({ x: index % COLS, y: Math.floor(index / COLS) })
+  const x = index % COLS
+  const y = Math.floor(index / COLS)
+  if (cell === 0 && !(x === VINYL_TILE.x && y === VINYL_TILE.y)) {
+    acc.push({ x, y })
+  }
   return acc
 }, [])
 
@@ -226,6 +234,7 @@ export const MainContainer = ({
   const cackeTexture      = useMemo(() => Texture.from(cakeAsset), [])
   const catTexture        = useMemo(() => Texture.from(catAsset), [])
   const backgroundTexture = useMemo(() => Texture.from(backgroundAsset), [])
+  const vinylTexture      = useMemo(() => Texture.from(vinylAsset), [])
 
   const allCollected = collectedCoins.size === ALL_COIN_POSITIONS.length
   const heartsText   = '❤️'.repeat(lives) + '🖤'.repeat(MAX_LIVES - lives)
@@ -248,6 +257,7 @@ export const MainContainer = ({
               <Cake key={i} texture={cackeTexture} x_start={start.x} y_start={start.y} onMove={cakeUpdaters[i]} />
             ) : null
           )}
+          <Vinyl texture={vinylTexture} tileX={VINYL_TILE.x} tileY={VINYL_TILE.y} />
           <Cat2 texture={catTexture} onMove={updateCat2Position} />
         </Camera>
 
