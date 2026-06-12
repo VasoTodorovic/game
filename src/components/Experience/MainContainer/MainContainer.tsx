@@ -56,7 +56,6 @@ const cakeAlertStyle   = new TextStyle({ fill: 0xffe066, fontSize: 26, fontWeigh
 const winStyle         = new TextStyle({ fill: 0x00ff88, fontSize: 40, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 5 })
 const scoreStyle       = new TextStyle({ fill: 0xffffff, fontSize: 20, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
 const livesStyle       = new TextStyle({ fill: 0xff4444, fontSize: 22, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
-const gameOverStyle    = new TextStyle({ fill: 0xff2222, fontSize: 52, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 6 })
 const gameOverSubStyle = new TextStyle({ fill: 0xffffff, fontSize: 22, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
 const heroSpeakingStyle    = new TextStyle({ fontSize: 36, fill: 0xffffff, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
 const instrTitleStyle      = new TextStyle({ fill: 0xffe066, fontSize: 36, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 5 })
@@ -270,6 +269,21 @@ export const MainContainer = ({
     [canvasSize.width]
   )
 
+  const gameOverStyle = useMemo(
+    () =>
+      new TextStyle({
+        fill: 0xff2222,
+        fontSize: Math.max(24, Math.min(52, canvasSize.width / 14)),
+        fontWeight: 'bold',
+        stroke: 0x000000,
+        strokeThickness: 6,
+        align: 'center',
+        wordWrap: true,
+        wordWrapWidth: canvasSize.width - 32,
+      }),
+    [canvasSize.width]
+  )
+
   const drawInstrOverlay = useCallback((g: any) => {
     g.clear()
     g.beginFill(0x000000, 0.88)
@@ -385,7 +399,7 @@ export const MainContainer = ({
 
         {/* Score — upper right */}
         <Text
-          text={`👣 Steps: ${collectedCoins.size} / ${ALL_COIN_POSITIONS.length}`}
+          text={`🪙 Coins: ${collectedCoins.size} / ${ALL_COIN_POSITIONS.length}`}
           x={canvasSize.width - 10}
           y={10}
           anchor={{ x: 1, y: 0 }}
@@ -487,7 +501,7 @@ export const MainContainer = ({
           <>
             <Graphics draw={drawOverlay} />
             <Text
-              text="🎂GAME OVER you eat to much cake this time 🎂"
+                text="🎂GAME OVER you eat to much cake this time 🎂"
               x={canvasSize.width / 2}
               y={canvasSize.height / 2 - 50}
               anchor={0.5}
