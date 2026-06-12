@@ -24,6 +24,13 @@ import { Cake } from '../../cake/Cake'
 import { Cat2 } from '../../Cat/Cat2'
 import { Vinyl } from '../../Vinyl/Vinyl'
 import vinylAsset from '@/assets/Vinyl.png'
+import img1Asset from '@/assets/img_1.png'
+import img2Asset from '@/assets/img_2.png'
+import img3Asset from '@/assets/img_3.png'
+import img4Asset from '@/assets/img_4.png'
+import img5Asset from '@/assets/img_5.png'
+import img6Asset from '@/assets/img_6.png'
+import img7Asset from '@/assets/img_7.png'
 
 interface IMainContainerProps {
   canvasSize: { width: number; height: number }
@@ -31,6 +38,29 @@ interface IMainContainerProps {
 
 const VINYL_TILE = { x: 22, y: 11 }
 const VINYL2_TILE = { x: 2, y: 15 }
+// Static decoration images. Position = TILE_SIZE * tile + pixel nudge, so to
+// fine-tune just change the last number (e.g. "+ 5" moves 5 pixels right/down).
+// frame = the image's real pixel size (controls only the shape/proportions).
+// width = on-screen width in pixels (height follows automatically);
+// omit it to get the default 2 tiles.
+const IMG_WIDTH = TILE_SIZE * 2
+interface IDecorImage {
+  asset: string
+  x: number
+  y: number
+  frame: { width: number; height: number }
+  width?: number
+}
+const DECOR_IMAGES: IDecorImage[] = [
+  { asset: img1Asset, x: TILE_SIZE * 19 + 0, y: TILE_SIZE * 7  + 0, frame: { width: 938,  height: 128 } },
+  { asset: img2Asset, x: TILE_SIZE * 23  -15, y: TILE_SIZE * 1  - 8, frame: { width: 2020, height: 500 } },
+  { asset: img3Asset, x: TILE_SIZE * 18 + 10, y: TILE_SIZE * 10 + 4, frame: { width: 250,  height: 68  } },
+  { asset: img4Asset, x: TILE_SIZE * 16 + 0, y: TILE_SIZE * 6  + 0, frame: { width: 702,  height: 210 } },
+  { asset: img5Asset, x: TILE_SIZE * 10 - 13, y: TILE_SIZE * 6  + 0, frame: { width: 198,  height: 46  } },
+  { asset: img6Asset, x: TILE_SIZE * 9  + 0,
+    y: TILE_SIZE * 13 + 20, frame: { width: 442,  height: 240 }, width: TILE_SIZE * 0.95 },
+  { asset: img7Asset, x: TILE_SIZE * 11 + 0, y: TILE_SIZE * 13 +16 , frame: { width: 158,  height: 52  } },
+]
 const VINYL_SONGS = [background1, background2, background3]
 
 const ALL_COIN_POSITIONS = COLLISION_MAP
@@ -81,23 +111,6 @@ const CAKE_STARTS = [
   { x: TILE_SIZE * 18, y: TILE_SIZE * 10 },
 ]
 
-const catAlertStyle    = new TextStyle({ fill: 0xffffff, fontSize: 26, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 4 })
-const cakeAlertStyle   = new TextStyle({ fill: 0xffe066, fontSize: 26, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 4 })
-const scoreStyle       = new TextStyle({ fill: 0xffffff, fontSize: 20, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
-const livesStyle       = new TextStyle({ fill: 0xff4444, fontSize: 22, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
-const gameOverSubStyle = new TextStyle({ fill: 0xffffff, fontSize: 22, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
-const heroSpeakingStyle    = new TextStyle({ fontSize: 36, fill: 0xffffff, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
-const instrTitleStyle      = new TextStyle({ fill: 0xffe066, fontSize: 36, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 5 })
-const instrTextStyle       = new TextStyle({ fill: 0xffffff, fontSize: 22, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3, lineHeight: 38 })
-const instrPromptStyle     = new TextStyle({ fill: 0xaaaaaa, fontSize: 18, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 2 })
-const difficultyStyles = Object.fromEntries(
-  DIFFICULTY_ORDER.map(level => [
-    level,
-    new TextStyle({ fill: DIFFICULTIES[level].color, fontSize: 28, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 4 }),
-  ])
-) as Record<Difficulty, TextStyle>
-const difficultyDimStyle = new TextStyle({ fill: 0x888888, fontSize: 24, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
-const startStyle         = new TextStyle({ fill: 0x00ff88, fontSize: 32, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 5 })
 
 export const MainContainer = ({
   canvasSize,
@@ -344,6 +357,49 @@ export const MainContainer = ({
     []
   )
 
+  const {
+    catAlertStyle,
+    cakeAlertStyle,
+    scoreStyle,
+    livesStyle,
+    gameOverSubStyle,
+    heroSpeakingStyle,
+    instrTitleStyle,
+    instrTextStyle,
+    instrPromptStyle,
+    difficultyStyles,
+    difficultyDimStyle,
+    startStyle,
+  } = useMemo(() => {
+    // Scale all fonts down on narrow (mobile) screens, full size from 720px up
+    const scale = Math.min(1, canvasSize.width / 720)
+    const fs = (px: number) => Math.max(13, Math.round(px * scale))
+    const wrap = {
+      align: 'center' as const,
+      wordWrap: true,
+      wordWrapWidth: canvasSize.width - 32,
+    }
+    return {
+      catAlertStyle:    new TextStyle({ fill: 0xffffff, fontSize: fs(26), fontWeight: 'bold', stroke: 0x000000, strokeThickness: 4, ...wrap }),
+      cakeAlertStyle:   new TextStyle({ fill: 0xffe066, fontSize: fs(26), fontWeight: 'bold', stroke: 0x000000, strokeThickness: 4 }),
+      scoreStyle:       new TextStyle({ fill: 0xffffff, fontSize: fs(20), fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 }),
+      livesStyle:       new TextStyle({ fill: 0xff4444, fontSize: fs(22), fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 }),
+      gameOverSubStyle: new TextStyle({ fill: 0xffffff, fontSize: fs(22), fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3, ...wrap }),
+      heroSpeakingStyle: new TextStyle({ fontSize: fs(36), fill: 0xffffff, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3, ...wrap }),
+      instrTitleStyle:  new TextStyle({ fill: 0xffe066, fontSize: fs(36), fontWeight: 'bold', stroke: 0x000000, strokeThickness: 5, ...wrap }),
+      instrTextStyle:   new TextStyle({ fill: 0xffffff, fontSize: fs(22), fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3, lineHeight: fs(38), ...wrap }),
+      instrPromptStyle: new TextStyle({ fill: 0xaaaaaa, fontSize: fs(18), fontWeight: 'bold', stroke: 0x000000, strokeThickness: 2, ...wrap }),
+      difficultyStyles: Object.fromEntries(
+        DIFFICULTY_ORDER.map(level => [
+          level,
+          new TextStyle({ fill: DIFFICULTIES[level].color, fontSize: fs(28), fontWeight: 'bold', stroke: 0x000000, strokeThickness: 4 }),
+        ])
+      ) as Record<Difficulty, TextStyle>,
+      difficultyDimStyle: new TextStyle({ fill: 0x888888, fontSize: fs(24), fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 }),
+      startStyle:         new TextStyle({ fill: 0x00ff88, fontSize: fs(32), fontWeight: 'bold', stroke: 0x000000, strokeThickness: 5 }),
+    }
+  }, [canvasSize.width])
+
   const chaseBannerStyle = useMemo(
     () =>
       new TextStyle({
@@ -390,9 +446,10 @@ export const MainContainer = ({
   )
 
   const drawInstrOverlay = useCallback((g: any) => {
+    const boxWidth = Math.min(560, canvasSize.width - 16)
     g.clear()
     g.beginFill(0x000000, 0.88)
-    g.drawRoundedRect(canvasSize.width / 2 - 280, canvasSize.height / 2 - 200, 560, 400, 18)
+    g.drawRoundedRect(canvasSize.width / 2 - boxWidth / 2, canvasSize.height / 2 - 200, boxWidth, 400, 18)
     g.endFill()
   }, [canvasSize.width, canvasSize.height])
 
@@ -520,6 +577,7 @@ export const MainContainer = ({
   const catTexture        = useMemo(() => Texture.from(catAsset), [])
   const backgroundTexture = useMemo(() => Texture.from(backgroundAsset), [])
   const vinylTexture      = useMemo(() => Texture.from(vinylAsset), [])
+  const decorTextures     = useMemo(() => DECOR_IMAGES.map(d => Texture.from(d.asset)), [])
 
   const allCollected = collectedCoins.size === ALL_COIN_POSITIONS.length
   const heartsText =
@@ -550,6 +608,16 @@ export const MainContainer = ({
               <Cake key={i} texture={cackeTexture} x_start={start.x} y_start={start.y} onMove={cakeUpdaters[i]} heroPosition={heroPosition} fleeing={chaseMode} speedMultiplier={DIFFICULTIES[difficulty].cakeSpeed} />
             ) : null
           )}
+          {DECOR_IMAGES.map((decor, i) => (
+            <Sprite
+              key={i}
+              texture={decorTextures[i]}
+              x={decor.x}
+              y={decor.y}
+              width={decor.width ?? IMG_WIDTH}
+              height={(decor.width ?? IMG_WIDTH) * (decor.frame.height / decor.frame.width)}
+            />
+          ))}
           <Vinyl texture={vinylTexture} tileX={VINYL_TILE.x} tileY={VINYL_TILE.y} />
           <Vinyl texture={vinylTexture} tileX={VINYL2_TILE.x} tileY={VINYL2_TILE.y} />
           {CAT_STARTS.map((start, i) => (
@@ -566,7 +634,7 @@ export const MainContainer = ({
 
         {/* Score — upper right, coins until next chase mode */}
         <Text
-          text={`🪙 ${collectedCoins.size % CHASE_THRESHOLD} / ${CHASE_THRESHOLD} till chase mode`}
+          text={`🪙 ${collectedCoins.size % CHASE_THRESHOLD} / ${CHASE_THRESHOLD} caloric deficit`}
           x={canvasSize.width - 10}
           y={10}
           anchor={{ x: 1, y: 0 }}
@@ -640,7 +708,7 @@ export const MainContainer = ({
         {/* Chase mode banner */}
         {chaseMode && !gameOver && (
           <Text
-            text="🎂 CHASE MODE! Catch a cake! You are in a calorie deficit."
+            text="🎂 CALORIE DEFICIT!!! go eat a cake! "
             x={canvasSize.width / 2}
             y={16}
             anchor={{ x: 0.5, y: 0 }}
@@ -718,7 +786,7 @@ export const MainContainer = ({
                     ? `▶ ${DIFFICULTIES[level].label} ◀`
                     : DIFFICULTIES[level].label
                 }
-                x={canvasSize.width / 2 + (i - 1) * 160}
+                x={canvasSize.width / 2 + (i - 1) * Math.min(160, canvasSize.width / 3.4)}
                 y={canvasSize.height / 2 + 95}
                 anchor={0.5}
                 style={difficulty === level ? difficultyStyles[level] : difficultyDimStyle}
