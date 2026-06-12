@@ -57,9 +57,8 @@ const DECOR_IMAGES: IDecorImage[] = [
   { asset: img3Asset, x: TILE_SIZE * 18 + 10, y: TILE_SIZE * 10 + 4, frame: { width: 250,  height: 68  } },
   { asset: img4Asset, x: TILE_SIZE * 16 + 0, y: TILE_SIZE * 6  + 0, frame: { width: 702,  height: 210 } },
   { asset: img5Asset, x: TILE_SIZE * 10 - 13, y: TILE_SIZE * 6  + 0, frame: { width: 198,  height: 46  } },
-  { asset: img6Asset, x: TILE_SIZE * 9  + 0,
-    y: TILE_SIZE * 13 + 20, frame: { width: 442,  height: 240 }, width: TILE_SIZE * 0.95 },
-  { asset: img7Asset, x: TILE_SIZE * 11 + 0, y: TILE_SIZE * 13 +16 , frame: { width: 158,  height: 52  } },
+  { asset: img6Asset, x: TILE_SIZE * 9  + 0, y: TILE_SIZE * 13 + 20, frame: { width: 442,  height: 240 }, width: TILE_SIZE * 0.95 },
+  { asset: img7Asset, x: TILE_SIZE * 11 + 10, y: TILE_SIZE * 13 +19 , frame: { width: 158,  height: 52  } ,width: TILE_SIZE * 1.25},
 ]
 const VINYL_SONGS = [background1, background2, background3]
 
