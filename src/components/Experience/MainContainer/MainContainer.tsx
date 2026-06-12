@@ -108,9 +108,11 @@ export const MainContainer = ({
     const dismiss = () => setShowInstructions(false)
     window.addEventListener('keydown', dismiss)
     window.addEventListener('click', dismiss)
+    window.addEventListener('pointerdown', dismiss)
     return () => {
       window.removeEventListener('keydown', dismiss)
       window.removeEventListener('click', dismiss)
+      window.removeEventListener('pointerdown', dismiss)
     }
   }, [showInstructions])
 

@@ -18,7 +18,7 @@ export const DEFAULT_Y_POS = TILE_SIZE * 14
 export const DEFAULT_X_POS_CAT = TILE_SIZE * 4
 export const DEFAULT_Y_POS_CAT = TILE_SIZE * 15
 export const ZOOM = 3
-export const MOBILE_ZOOM = 1.5
+export const MOBILE_ZOOM = 2.5
 
 export const getZoom = () =>
   window.matchMedia('(pointer: coarse)').matches ? MOBILE_ZOOM : ZOOM
