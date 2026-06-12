@@ -12,7 +12,7 @@ import heroAsset from '@/assets/hero.png'
 import coinRedAsset from '@/assets/coin-red.png'
 import cakeAsset from "@/assets/cake.png"
 import catAsset from "@/assets/cat.png"
-import hindusiSound from '@/assets/Hero sound Hindusi random.mpeg'
+// import hindusiSound from '@/assets/Hero sound Hindusi random.mpeg'
 import belaCigankaSound from '@/assets/Hero sound Bela Ciganka radnom.mpeg'
 import oliverSound from '@/assets/Hero Sound Vinyl.mpeg'
 import oliverSoundPape from '@/assets/Background music Pape.mp3'
@@ -44,10 +44,23 @@ const ORANGE_CAT_INDEX = 0
 const ORANGE_BOOST_SECONDS = 10
 const CAT_BOOST_SECONDS = 5
 
+type Difficulty = 'EASY' | 'NORMAL' | 'HARD'
+const DIFFICULTIES: Record<
+  Difficulty,
+  { label: string; heroSpeed: number; cakeSpeed: number; color: number }
+> = {
+  EASY:   { label: '🐢 Easy',   heroSpeed: 1.2, cakeSpeed: 0.7, color: 0x66ff99 },
+  NORMAL: { label: '🙂 Normal', heroSpeed: 1,   cakeSpeed: 1,   color: 0xffe066 },
+  HARD:   { label: '🔥 Hard',   heroSpeed: 1,   cakeSpeed: 1.4, color: 0xff6666 },
+}
+const DIFFICULTY_ORDER: Difficulty[] = ['EASY', 'NORMAL', 'HARD']
+
 const CAT_STARTS = [
   { x: TILE_SIZE * 4,  y: TILE_SIZE * 15 },
   { x: TILE_SIZE * 22, y: TILE_SIZE * 4  },
   { x: TILE_SIZE * 12, y: TILE_SIZE * 8  },
+  { x: TILE_SIZE * 18, y: TILE_SIZE * 12 },
+  { x: TILE_SIZE * 7,  y: TILE_SIZE * 5  },
 ]
 
 const CAKE_STARTS = [
@@ -70,12 +83,21 @@ const heroSpeakingStyle    = new TextStyle({ fontSize: 36, fill: 0xffffff, fontW
 const instrTitleStyle      = new TextStyle({ fill: 0xffe066, fontSize: 36, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 5 })
 const instrTextStyle       = new TextStyle({ fill: 0xffffff, fontSize: 22, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3, lineHeight: 38 })
 const instrPromptStyle     = new TextStyle({ fill: 0xaaaaaa, fontSize: 18, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 2 })
+const difficultyStyles = Object.fromEntries(
+  DIFFICULTY_ORDER.map(level => [
+    level,
+    new TextStyle({ fill: DIFFICULTIES[level].color, fontSize: 28, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 4 }),
+  ])
+) as Record<Difficulty, TextStyle>
+const difficultyDimStyle = new TextStyle({ fill: 0x888888, fontSize: 24, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
+const startStyle         = new TextStyle({ fill: 0x00ff88, fontSize: 32, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 5 })
 
 export const MainContainer = ({
   canvasSize,
   children,
 }: PropsWithChildren<IMainContainerProps>) => {
   const [showInstructions, setShowInstructions] = useState(true)
+  const [difficulty, setDifficulty] = useState<Difficulty>('NORMAL')
   const [heroPosition, setHeroPosition]   = useState({ x: 1, y: 0 })
   const [catPositions, setCatPositions]   = useState<{ x: number; y: number }[]>(
     CAT_STARTS.map(s => ({ x: Math.floor(s.x / TILE_SIZE), y: Math.floor(s.y / TILE_SIZE) }))
@@ -105,15 +127,14 @@ export const MainContainer = ({
 
   useEffect(() => {
     if (!showInstructions) return
-    const dismiss = () => setShowInstructions(false)
-    window.addEventListener('keydown', dismiss)
-    window.addEventListener('click', dismiss)
-    window.addEventListener('pointerdown', dismiss)
-    return () => {
-      window.removeEventListener('keydown', dismiss)
-      window.removeEventListener('click', dismiss)
-      window.removeEventListener('pointerdown', dismiss)
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Digit1' || e.code === 'Numpad1') setDifficulty('EASY')
+      else if (e.code === 'Digit2' || e.code === 'Numpad2') setDifficulty('NORMAL')
+      else if (e.code === 'Digit3' || e.code === 'Numpad3') setDifficulty('HARD')
+      else if (e.code === 'Enter' || e.code === 'Space') setShowInstructions(false)
     }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
   }, [showInstructions])
 
   useEffect(() => {
@@ -128,7 +149,7 @@ export const MainContainer = ({
     const playRandomQueue = (queue: string[], index: number) => {
       if (index >= queue.length) {
         // Reshuffle and loop
-        const next = [belaCigankaSound, belaCigankaSound, hindusiSound, hindusiSound]
+        const next = [belaCigankaSound, belaCigankaSound /*, hindusiSound, hindusiSound */]
         for (let i = next.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1))
           ;[next[i], next[j]] = [next[j], next[i]]
@@ -153,7 +174,7 @@ export const MainContainer = ({
     }
 
     // Kick off random queue immediately on mount
-    const initialQueue = [belaCigankaSound, belaCigankaSound, hindusiSound, hindusiSound]
+    const initialQueue = [belaCigankaSound, belaCigankaSound /*, hindusiSound, hindusiSound */]
     for (let i = initialQueue.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1))
       ;[initialQueue[i], initialQueue[j]] = [initialQueue[j], initialQueue[i]]
@@ -446,11 +467,11 @@ export const MainContainer = ({
           <Hero
             texture={heroTexture}
             onMove={updateHeroPosition}
-            speedMultiplier={boostTimeLeft > 0 ? 2 : 1}
+            speedMultiplier={(boostTimeLeft > 0 ? 2 : 1) * DIFFICULTIES[difficulty].heroSpeed}
           />
           {CAKE_STARTS.map((start, i) =>
             !deadCakes.has(i) ? (
-              <Cake key={i} texture={cackeTexture} x_start={start.x} y_start={start.y} onMove={cakeUpdaters[i]} heroPosition={heroPosition} fleeing={chaseMode} />
+              <Cake key={i} texture={cackeTexture} x_start={start.x} y_start={start.y} onMove={cakeUpdaters[i]} heroPosition={heroPosition} fleeing={chaseMode} speedMultiplier={DIFFICULTIES[difficulty].cakeSpeed} />
             ) : null
           )}
           <Vinyl texture={vinylTexture} tileX={VINYL_TILE.x} tileY={VINYL_TILE.y} />
@@ -466,9 +487,9 @@ export const MainContainer = ({
           ))}
         </Camera>
 
-        {/* Score — upper right */}
+        {/* Score — upper right, coins until next chase mode */}
         <Text
-          text={`🪙 Coins: ${collectedCoins.size} / ${ALL_COIN_POSITIONS.length}`}
+          text={`🪙 ${collectedCoins.size % CHASE_THRESHOLD} / ${CHASE_THRESHOLD} till chase mode`}
           x={canvasSize.width - 10}
           y={10}
           anchor={{ x: 1, y: 0 }}
@@ -577,10 +598,37 @@ export const MainContainer = ({
               anchor={{ x: 0.5, y: 0 }}
               style={instrTextStyle}
             />
+            {DIFFICULTY_ORDER.map((level, i) => (
+              <Text
+                key={level}
+                text={
+                  difficulty === level
+                    ? `▶ ${DIFFICULTIES[level].label} ◀`
+                    : DIFFICULTIES[level].label
+                }
+                x={canvasSize.width / 2 + (i - 1) * 160}
+                y={canvasSize.height / 2 + 95}
+                anchor={0.5}
+                style={difficulty === level ? difficultyStyles[level] : difficultyDimStyle}
+                eventMode="static"
+                cursor="pointer"
+                pointerdown={() => setDifficulty(level)}
+              />
+            ))}
             <Text
-              text="Press any key or click to start"
+              text="▶ START ◀"
               x={canvasSize.width / 2}
-              y={canvasSize.height / 2 + 160}
+              y={canvasSize.height / 2 + 145}
+              anchor={0.5}
+              style={startStyle}
+              eventMode="static"
+              cursor="pointer"
+              pointerdown={() => setShowInstructions(false)}
+            />
+            <Text
+              text="Pick a mode (tap or 1 / 2 / 3), then tap START or press Enter"
+              x={canvasSize.width / 2}
+              y={canvasSize.height / 2 + 182}
               anchor={0.5}
               style={instrPromptStyle}
             />

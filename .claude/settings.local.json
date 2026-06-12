@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc *)",
-      "Bash(gh api *)"
+      "Bash(gh api *)",
+      "Bash(npx vite *)"
     ]
   }
 }

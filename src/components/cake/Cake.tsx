@@ -17,11 +17,15 @@ interface ICakeProps {
   y_start: number
   heroPosition: { x: number; y: number }
   fleeing?: boolean
+  speedMultiplier?: number
 }
 
 const ANIMATION_SPEED = 0.2
 const CAKE_SPEED = MOVE_SPEED * 0.8
 const WANDER_CHANCE = 0.25
+
+// Cakes only notice the hero within this many tiles; beyond it they just wander
+const CHASE_RADIUS = 5
 
 // Sugar rush: random short sprint, tinted pink as a warning
 const RUSH_MULTIPLIER = 2
@@ -54,6 +58,7 @@ export const Cake = ({
   y_start,
   heroPosition,
   fleeing = false,
+  speedMultiplier = 1,
 }: ICakeProps) => {
   const position = useRef({ x: x_start, y: y_start })
   const targetPosition = useRef<{ x: number; y: number } | null>(null)
@@ -63,6 +68,8 @@ export const Cake = ({
   heroRef.current = heroPosition
   const fleeingRef = useRef(fleeing)
   fleeingRef.current = fleeing
+  const speedRef = useRef(speedMultiplier)
+  speedRef.current = speedMultiplier
   const [isRushing, setIsRushing] = useState(false)
   const rushingRef = useRef(false)
   const rushEndsAt = useRef(0)
@@ -86,8 +93,10 @@ export const Cake = ({
     const horizontal: Direction = (dx > 0) !== fleeingRef.current ? 'RIGHT' : 'LEFT'
     const vertical: Direction = (dy > 0) !== fleeingRef.current ? 'DOWN' : 'UP'
 
+    const heroIsFar = Math.hypot(dx, dy) > CHASE_RADIUS
+
     let candidates: Direction[]
-    if (Math.random() < WANDER_CHANCE) {
+    if (heroIsFar || Math.random() < WANDER_CHANCE) {
       candidates = shuffle(ALL_DIRECTIONS)
     } else {
       const primary = Math.abs(dx) >= Math.abs(dy) ? horizontal : vertical
@@ -144,7 +153,7 @@ export const Cake = ({
       const { position: newPosition, completed } = handleMovement(
         position.current,
         targetPosition.current,
-        CAKE_SPEED * (rushingRef.current ? RUSH_MULTIPLIER : 1),
+        CAKE_SPEED * speedRef.current * (rushingRef.current ? RUSH_MULTIPLIER : 1),
         delta
       )
 
