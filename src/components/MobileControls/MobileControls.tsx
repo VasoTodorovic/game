@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { TILE_SIZE, ZOOM } from '../../constants/game-world'
+import { TILE_SIZE, getZoom } from '../../constants/game-world'
 import { screenPositionStore } from '../../helpers/screen-position'
 import './MobileControls.css'
 
@@ -31,10 +31,11 @@ export const MobileControls = () => {
     if (!isTouchDevice) return
 
     let raf: number
+    const zoom = getZoom()
     const followHero = () => {
       const { hero, camera } = screenPositionStore
-      const x = camera.x + (hero.x + TILE_SIZE / 2) * ZOOM
-      const y = camera.y + (hero.y + TILE_SIZE / 2) * ZOOM
+      const x = camera.x + (hero.x + TILE_SIZE / 2) * zoom
+      const y = camera.y + (hero.y + TILE_SIZE / 2) * zoom
       if (padRef.current) {
         padRef.current.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`
       }

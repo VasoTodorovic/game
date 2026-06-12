@@ -1,7 +1,7 @@
 import { useRef, PropsWithChildren } from 'react'
 import { Container, useTick } from '@pixi/react'
 import { Graphics as PIXIGraphics } from 'pixi.js'
-import { TILE_SIZE, ZOOM } from '../../constants/game-world'
+import { TILE_SIZE, getZoom } from '../../constants/game-world'
 import { screenPositionStore } from '../../helpers/screen-position'
 
 interface ICameraProps {
@@ -19,6 +19,7 @@ export const Camera = ({
   children,
 }: PropsWithChildren<ICameraProps>) => {
   const containerRef = useRef<PIXIGraphics>(null)
+  const zoom = getZoom()
 
   const cameraPosition = useRef<{ x: number; y: number }>({
     x: canvasSize.width / 2,
@@ -28,9 +29,9 @@ export const Camera = ({
   useTick(() => {
     if (containerRef.current) {
       const targetX =
-        canvasSize.width / 2 - heroPosition.x * TILE_SIZE * ZOOM - TILE_SIZE
+        canvasSize.width / 2 - heroPosition.x * TILE_SIZE * zoom - TILE_SIZE
       const targetY =
-        canvasSize.height / 2 - heroPosition.y * TILE_SIZE * ZOOM - TILE_SIZE
+        canvasSize.height / 2 - heroPosition.y * TILE_SIZE * zoom - TILE_SIZE
 
       cameraPosition.current.x = lerp(cameraPosition.current.x, targetX)
       cameraPosition.current.y = lerp(cameraPosition.current.y, targetY)
@@ -44,7 +45,7 @@ export const Camera = ({
   })
 
   return (
-    <Container ref={containerRef} scale={ZOOM}>
+    <Container ref={containerRef} scale={zoom}>
       {children}
     </Container>
   )
