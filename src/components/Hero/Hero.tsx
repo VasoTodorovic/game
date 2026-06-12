@@ -20,9 +20,10 @@ import { screenPositionStore } from '../../helpers/screen-position'
 interface IHeroProps {
   texture: Texture
   onMove: (gridX: number, gridY: number) => void
+  speedMultiplier?: number
 }
 
-export const Hero = ({ texture, onMove }: IHeroProps) => {
+export const Hero = ({ texture, onMove, speedMultiplier = 1 }: IHeroProps) => {
   const position = useRef({ x: DEFAULT_X_POS, y: DEFAULT_Y_POS })
   const targetPosition = useRef<{ x: number; y: number } | null>(null)
   const currentDirection = useRef<Direction | null>(null)
@@ -62,7 +63,7 @@ export const Hero = ({ texture, onMove }: IHeroProps) => {
       const { position: newPosition, completed } = handleMovement(
         position.current,
         targetPosition.current,
-        MOVE_SPEED,
+        MOVE_SPEED * speedMultiplier,
         delta
       )
 

@@ -86,8 +86,9 @@ export const Cat2 = ({ texture, onMove }: IHeroProps) => {
           texture={sprite.texture}
           x={position.current.x}
           y={position.current.y}
-    scale={0.5}
-        anchor={[-0.3, 0.1]}
+          tint={0xff7700}
+          scale={0.5}
+          anchor={[-0.3, 0.1]}
         />
       )}
     </Container>

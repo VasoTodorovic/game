@@ -80,6 +80,8 @@ export const MainContainer = ({
   const [catMessage, setCatMessage]         = useState<string | null>(null)
   const [cakeMessage, setCakeMessage]       = useState<string | null>(null)
   const [heroSpeaking, setHeroSpeaking]     = useState(false)
+  const [speedBoost, setSpeedBoost]         = useState(false)
+  const boostTimeout    = useRef<ReturnType<typeof setTimeout> | null>(null)
   const catTimeout      = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cakeTimeout     = useRef<ReturnType<typeof setTimeout> | null>(null)
   const invincibleRef        = useRef(false)
@@ -324,7 +326,10 @@ export const MainContainer = ({
   useEffect(() => {
     if (gameOver) return
     if (heroPosition.x === cat2Position.x && heroPosition.y === cat2Position.y) {
-      showCatMsg('🐾 Pet the cat!')
+      showCatMsg('🐾 Pet the cat! ⚡ Speed boost!')
+      setSpeedBoost(true)
+      if (boostTimeout.current) clearTimeout(boostTimeout.current)
+      boostTimeout.current = setTimeout(() => setSpeedBoost(false), 15000)
     }
   }, [heroPosition, cat2Position])
 
@@ -387,7 +392,11 @@ export const MainContainer = ({
               <Coin key={i} texture={coinTexture} x={coin.x} y={coin.y} />
             ) : null
           )}
-          <Hero texture={heroTexture} onMove={updateHeroPosition} />
+          <Hero
+            texture={heroTexture}
+            onMove={updateHeroPosition}
+            speedMultiplier={speedBoost ? 2 : 1}
+          />
           {CAKE_STARTS.map((start, i) =>
             !deadCakes.has(i) ? (
               <Cake key={i} texture={cackeTexture} x_start={start.x} y_start={start.y} onMove={cakeUpdaters[i]} />
@@ -424,6 +433,17 @@ export const MainContainer = ({
           style={cakeAlertStyle}
         />
 
+        {/* Speed boost indicator — upper right, below cakes */}
+        {speedBoost && !gameOver && (
+          <Text
+            text="⚡ Speed x2"
+            x={canvasSize.width - 10}
+            y={98}
+            anchor={{ x: 1, y: 0 }}
+            style={scoreStyle}
+          />
+        )}
+
         {/* Chase mode banner */}
         {chaseMode && !gameOver && (
           <Text
@@ -437,7 +457,7 @@ export const MainContainer = ({
 
         {allCollected && !gameOver && (
           <Text
-            text="🚀Čestitam, presli ste dosta koraka danas Do lete izgledacete kao RAKETA🚀!"
+            text="🚀Čestitam, presli ste dosta koraka danas Do leta izgledacete kao RAKETA🚀!"
             x={canvasSize.width / 2}
             y={canvasSize.height / 2 - 80}
             anchor={0.5}
