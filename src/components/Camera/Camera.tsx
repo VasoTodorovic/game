@@ -2,7 +2,6 @@ import { useRef, PropsWithChildren } from 'react'
 import { Container, useTick } from '@pixi/react'
 import { Graphics as PIXIGraphics } from 'pixi.js'
 import { TILE_SIZE, getZoom } from '../../constants/game-world'
-import { screenPositionStore } from '../../helpers/screen-position'
 
 interface ICameraProps {
   heroPosition: { x: number; y: number }
@@ -38,9 +37,6 @@ export const Camera = ({
 
       containerRef.current.x = cameraPosition.current.x
       containerRef.current.y = cameraPosition.current.y
-
-      screenPositionStore.camera.x = cameraPosition.current.x
-      screenPositionStore.camera.y = cameraPosition.current.y
     }
   })
 

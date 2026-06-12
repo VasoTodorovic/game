@@ -15,7 +15,6 @@ import {
 } from '../../helpers/common'
 import { useHeroAnimation } from './useHeroAnimation'
 import { Direction } from '../../types/game-world'
-import { screenPositionStore } from '../../helpers/screen-position'
 
 interface IHeroProps {
   texture: Texture
@@ -78,9 +77,6 @@ export const Hero = ({ texture, onMove, speedMultiplier = 1 }: IHeroProps) => {
         isMoving.current = false
       }
     }
-
-    screenPositionStore.hero.x = position.current.x
-    screenPositionStore.hero.y = position.current.y
 
     updateSprite(currentDirection.current!, isMoving.current)
   })
