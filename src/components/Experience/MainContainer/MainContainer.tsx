@@ -40,6 +40,7 @@ const ALL_COIN_POSITIONS = COLLISION_MAP
 
 const CHASE_THRESHOLD = Math.floor(ALL_COIN_POSITIONS.length / 7)
 const MAX_LIVES = 3
+const BOOST_SECONDS = 10
 
 const CAKE_STARTS = [
   { x: TILE_SIZE * 1,  y: TILE_SIZE * 1  },
@@ -80,8 +81,7 @@ export const MainContainer = ({
   const [catMessage, setCatMessage]         = useState<string | null>(null)
   const [cakeMessage, setCakeMessage]       = useState<string | null>(null)
   const [heroSpeaking, setHeroSpeaking]     = useState(false)
-  const [speedBoost, setSpeedBoost]         = useState(false)
-  const boostTimeout    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [boostTimeLeft, setBoostTimeLeft]   = useState(0)
   const catTimeout      = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cakeTimeout     = useRef<ReturnType<typeof setTimeout> | null>(null)
   const invincibleRef        = useRef(false)
@@ -327,11 +327,16 @@ export const MainContainer = ({
     if (gameOver) return
     if (heroPosition.x === cat2Position.x && heroPosition.y === cat2Position.y) {
       showCatMsg('🐾 Pet the cat! ⚡ Speed boost!')
-      setSpeedBoost(true)
-      if (boostTimeout.current) clearTimeout(boostTimeout.current)
-      boostTimeout.current = setTimeout(() => setSpeedBoost(false), 15000)
+      setBoostTimeLeft(BOOST_SECONDS)
     }
   }, [heroPosition, cat2Position])
+
+  // Speed boost countdown — tick down once per second
+  useEffect(() => {
+    if (boostTimeLeft <= 0) return
+    const timer = setTimeout(() => setBoostTimeLeft((s) => s - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [boostTimeLeft])
 
   // Cake collision — catch in chase mode, lose life in normal mode
   useEffect(() => {
@@ -395,7 +400,7 @@ export const MainContainer = ({
           <Hero
             texture={heroTexture}
             onMove={updateHeroPosition}
-            speedMultiplier={speedBoost ? 2 : 1}
+            speedMultiplier={boostTimeLeft > 0 ? 2 : 1}
           />
           {CAKE_STARTS.map((start, i) =>
             !deadCakes.has(i) ? (
@@ -434,9 +439,9 @@ export const MainContainer = ({
         />
 
         {/* Speed boost indicator — upper right, below cakes */}
-        {speedBoost && !gameOver && (
+        {boostTimeLeft > 0 && !gameOver && (
           <Text
-            text="⚡ Speed x2"
+            text={`⚡ Speed x2 — ${boostTimeLeft}s`}
             x={canvasSize.width - 10}
             y={98}
             anchor={{ x: 1, y: 0 }}
