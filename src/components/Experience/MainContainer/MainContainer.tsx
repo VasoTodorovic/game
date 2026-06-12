@@ -3,7 +3,7 @@ import { Texture, TextStyle } from 'pixi.js'
 import { Container, Sprite, Text, Graphics } from '@pixi/react'
 import { TILE_SIZE, COLS } from '../../../constants/game-world'
 import { COLLISION_MAP } from '../../../constants/collision-map'
-import { Hero } from '../../Hero/Hero'
+import { Hero, SPRINT_TILES, SPRINT_RECHARGE_SECONDS } from '../../Hero/Hero'
 import { Level } from '../../Levels/Level'
 import { Camera } from '../../Camera/Camera'
 import { Coin } from '../../Coin/Coin'
@@ -15,9 +15,11 @@ import catAsset from "@/assets/cat.png"
 // import hindusiSound from '@/assets/Hero sound Hindusi random.mpeg'
 import belaCigankaSound from '@/assets/Hero sound Bela Ciganka radnom.mpeg'
 import oliverSound from '@/assets/Hero Sound Vinyl.mpeg'
-import oliverSoundPape from '@/assets/Background music Pape.mp3'
 import cakeEffectSound from '@/assets/Game effect cake colision.mpeg'
 import completedEffectSound from '@/assets/Game effect completed.mpeg'
+import background1 from '@/assets/background 1.mp3'
+import background2 from '@/assets/background 2.mp3'
+import background3 from '@/assets/background 3.mp3'
 import { Cake } from '../../cake/Cake'
 import { Cat2 } from '../../Cat/Cat2'
 import { Vinyl } from '../../Vinyl/Vinyl'
@@ -28,12 +30,18 @@ interface IMainContainerProps {
 }
 
 const VINYL_TILE = { x: 22, y: 11 }
+const VINYL2_TILE = { x: 2, y: 15 }
+const VINYL_SONGS = [background1, background2, background3]
 
 const ALL_COIN_POSITIONS = COLLISION_MAP
   .reduce<{ x: number; y: number }[]>((acc, cell, index) => {
     const x = index % COLS
     const y = Math.floor(index / COLS)
-    if (cell === 0 && !(x === VINYL_TILE.x && y === VINYL_TILE.y)) acc.push({ x, y })
+    if (
+      cell === 0 &&
+      !(x === VINYL_TILE.x && y === VINYL_TILE.y) &&
+      !(x === VINYL2_TILE.x && y === VINYL2_TILE.y)
+    ) acc.push({ x, y })
     return acc
   }, [])
   .filter((_, i) => i % 3 === 0)
@@ -75,7 +83,6 @@ const CAKE_STARTS = [
 
 const catAlertStyle    = new TextStyle({ fill: 0xffffff, fontSize: 26, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 4 })
 const cakeAlertStyle   = new TextStyle({ fill: 0xffe066, fontSize: 26, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 4 })
-const winStyle         = new TextStyle({ fill: 0x00ff88, fontSize: 40, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 5 })
 const scoreStyle       = new TextStyle({ fill: 0xffffff, fontSize: 20, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
 const livesStyle       = new TextStyle({ fill: 0xff4444, fontSize: 22, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
 const gameOverSubStyle = new TextStyle({ fill: 0xffffff, fontSize: 22, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
@@ -114,7 +121,11 @@ export const MainContainer = ({
   const [cakeMessage, setCakeMessage]       = useState<string | null>(null)
   const [heroSpeaking, setHeroSpeaking]     = useState(false)
   const [boostTimeLeft, setBoostTimeLeft]   = useState(0)
+  const [sprintTiles, setSprintTiles]       = useState(SPRINT_TILES)
+  const [sprintRecharge, setSprintRecharge] = useState(0)
   const [oliverBoost, setOliverBoost]       = useState(false)
+  const [finishSeconds, setFinishSeconds]   = useState<number | null>(null)
+  const gameStartRef                        = useRef<number | null>(null)
   const oliverBoostRef                      = useRef(false)
   const catTimeout      = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cakeTimeout     = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -135,6 +146,13 @@ export const MainContainer = ({
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
+  }, [showInstructions])
+
+  // Start the clock when the instructions are dismissed
+  useEffect(() => {
+    if (!showInstructions && gameStartRef.current === null) {
+      gameStartRef.current = Date.now()
+    }
   }, [showInstructions])
 
   useEffect(() => {
@@ -181,15 +199,24 @@ export const MainContainer = ({
     }
     playRandomQueue(initialQueue, 0)
 
-    // Pape = background music after vinyl sequence, no icon
-    const startPape = () => {
-      papeTimer = setTimeout(() => { pape.play().catch(() => {}) }, 1500)
+    // After the vinyl sequence: a random song from the pool, no icon
+    const poolAudios = VINYL_SONGS.map(src => {
+      const audio = new Audio(src)
+      audio.preload = 'auto'
+      return audio
+    })
+    let currentPoolSong: HTMLAudioElement | null = null
+
+    const startPoolSong = () => {
+      papeTimer = setTimeout(() => {
+        currentPoolSong?.pause()
+        currentPoolSong = poolAudios[Math.floor(Math.random() * poolAudios.length)]
+        currentPoolSong.currentTime = 0
+        currentPoolSong.play().catch(() => {})
+      }, 1500)
     }
 
-    const pape = new Audio(oliverSoundPape)
-    pape.preload = 'auto'
-
-    // Oliver boost is active only while the Pape background music plays
+    // Oliver boost is active only while a pool background song plays
     const boostOn = () => {
       setOliverBoost(true)
       oliverBoostRef.current = true
@@ -198,9 +225,11 @@ export const MainContainer = ({
       setOliverBoost(false)
       oliverBoostRef.current = false
     }
-    pape.addEventListener('play', boostOn)
-    pape.addEventListener('pause', boostOff)
-    pape.addEventListener('ended', boostOff)
+    poolAudios.forEach(audio => {
+      audio.addEventListener('play', boostOn)
+      audio.addEventListener('pause', boostOff)
+      audio.addEventListener('ended', boostOff)
+    })
 
     let oliverDone = false
     const afterOliver = () => {
@@ -209,7 +238,7 @@ export const MainContainer = ({
       oliverPlaying = false
       setHeroSpeaking(false)
       oliverDone = false
-      startPape()
+      startPoolSong()
     }
 
     // Hero Sound Vinyl — triggered only by vinyl collision
@@ -221,6 +250,9 @@ export const MainContainer = ({
     playOliverRef.current = () => {
       if (oliverPlaying) return
       oliverPlaying = true
+      clearTimeout(papeTimer)
+      currentPoolSong?.pause()
+      currentPoolSong = null
       oliver.currentTime = 0
       setHeroSpeaking(true)
       oliver.play().catch(afterOliver)
@@ -238,7 +270,7 @@ export const MainContainer = ({
     return () => {
       clearTimeout(papeTimer)
       clearTimeout(randomSoundTimer)
-      pape.pause()
+      poolAudios.forEach(audio => audio.pause())
       oliver.pause()
       randomAudio?.pause()
       setHeroSpeaking(false)
@@ -342,6 +374,21 @@ export const MainContainer = ({
     [canvasSize.width]
   )
 
+  const winStyle = useMemo(
+    () =>
+      new TextStyle({
+        fill: 0x00ff88,
+        fontSize: Math.max(20, Math.min(40, canvasSize.width / 18)),
+        fontWeight: 'bold',
+        stroke: 0x000000,
+        strokeThickness: 5,
+        align: 'center',
+        wordWrap: true,
+        wordWrapWidth: canvasSize.width - 32,
+      }),
+    [canvasSize.width]
+  )
+
   const drawInstrOverlay = useCallback((g: any) => {
     g.clear()
     g.beginFill(0x000000, 0.88)
@@ -378,6 +425,13 @@ export const MainContainer = ({
     }
   }, [heroPosition])
 
+  // Vinyl 2 collision — same sequence: Oliver, then a random pool song
+  useEffect(() => {
+    if (heroPosition.x === VINYL2_TILE.x && heroPosition.y === VINYL2_TILE.y) {
+      playOliverRef.current?.()
+    }
+  }, [heroPosition])
+
   // Cat collision — always active while alive
   useEffect(() => {
     if (gameOver) return
@@ -401,6 +455,24 @@ export const MainContainer = ({
     const timer = setTimeout(() => setBoostTimeLeft((s) => s - 1), 1000)
     return () => clearTimeout(timer)
   }, [boostTimeLeft])
+
+  // Sprint stamina recharge countdown — refill bar when it reaches 0
+  const handleSprintChange = useCallback((tilesLeft: number, rechargeSeconds: number) => {
+    setSprintTiles(tilesLeft)
+    setSprintRecharge(rechargeSeconds)
+  }, [])
+
+  useEffect(() => {
+    if (sprintRecharge <= 0) return
+    const timer = setTimeout(() => {
+      setSprintRecharge((s) => {
+        const next = s - 1
+        if (next <= 0) setSprintTiles(SPRINT_TILES)
+        return next
+      })
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [sprintRecharge])
 
   // Cake collision — catch in chase mode, lose life in normal mode
   useEffect(() => {
@@ -436,6 +508,9 @@ export const MainContainer = ({
     if (collectedCoins.size === ALL_COIN_POSITIONS.length && ALL_COIN_POSITIONS.length > 0 && !completedPlayedRef.current) {
       completedPlayedRef.current = true
       playCompletedRef.current?.()
+      if (gameStartRef.current !== null) {
+        setFinishSeconds(Math.round((Date.now() - gameStartRef.current) / 1000))
+      }
     }
   }, [collectedCoins])
 
@@ -468,6 +543,7 @@ export const MainContainer = ({
             texture={heroTexture}
             onMove={updateHeroPosition}
             speedMultiplier={(boostTimeLeft > 0 ? 2 : 1) * DIFFICULTIES[difficulty].heroSpeed}
+            onSprintChange={handleSprintChange}
           />
           {CAKE_STARTS.map((start, i) =>
             !deadCakes.has(i) ? (
@@ -475,6 +551,7 @@ export const MainContainer = ({
             ) : null
           )}
           <Vinyl texture={vinylTexture} tileX={VINYL_TILE.x} tileY={VINYL_TILE.y} />
+          <Vinyl texture={vinylTexture} tileX={VINYL2_TILE.x} tileY={VINYL2_TILE.y} />
           {CAT_STARTS.map((start, i) => (
             <Cat2
               key={i}
@@ -514,12 +591,36 @@ export const MainContainer = ({
           style={cakeAlertStyle}
         />
 
-        {/* Speed boost indicator — upper right, below cakes */}
+        {/* Sprint stamina bar — upper right, below cakes */}
+        {!gameOver && (
+          <Text
+            text={(() => {
+              const filled =
+                sprintRecharge > 0
+                  ? Math.floor(
+                      ((SPRINT_RECHARGE_SECONDS - sprintRecharge) /
+                        SPRINT_RECHARGE_SECONDS) *
+                        SPRINT_TILES
+                    )
+                  : sprintTiles
+              const bar = '▰'.repeat(filled) + '▱'.repeat(SPRINT_TILES - filled)
+              return sprintRecharge > 0
+                ? `💨 ${bar} ${sprintRecharge}s`
+                : `💨 ${bar}`
+            })()}
+            x={canvasSize.width - 10}
+            y={94}
+            anchor={{ x: 1, y: 0 }}
+            style={scoreStyle}
+          />
+        )}
+
+        {/* Speed boost indicator — upper right, below stamina */}
         {boostTimeLeft > 0 && !gameOver && (
           <Text
             text={`⚡ Speed x2 — ${boostTimeLeft}s`}
             x={canvasSize.width - 10}
-            y={98}
+            y={122}
             anchor={{ x: 1, y: 0 }}
             style={scoreStyle}
           />
@@ -530,7 +631,7 @@ export const MainContainer = ({
           <Text
             text="🎵 Oliver boost — cakes deal half damage"
             x={canvasSize.width - 10}
-            y={126}
+            y={150}
             anchor={{ x: 1, y: 0 }}
             style={scoreStyle}
           />
@@ -548,13 +649,24 @@ export const MainContainer = ({
         )}
 
         {allCollected && !gameOver && (
-          <Text
-            text="🚀Čestitam, presli ste dosta koraka danas Do leta izgledacete kao RAKETA🚀!"
-            x={canvasSize.width / 2}
-            y={canvasSize.height / 2 - 80}
-            anchor={0.5}
-            style={winStyle}
-          />
+          <>
+            <Text
+              text="🚀Čestitam, presli ste dosta koraka danas Do leta izgledacete kao RAKETA🚀!"
+              x={canvasSize.width / 2}
+              y={canvasSize.height / 2 - 80}
+              anchor={0.5}
+              style={winStyle}
+            />
+            {finishSeconds !== null && (
+              <Text
+                text={`⏱️ Finished in ${Math.floor(finishSeconds / 60)}:${String(finishSeconds % 60).padStart(2, '0')}`}
+                x={canvasSize.width / 2}
+                y={canvasSize.height / 2 - 30}
+                anchor={0.5}
+                style={gameOverSubStyle}
+              />
+            )}
+          </>
         )}
 
         {/* Hero speaking icon — bottom center */}

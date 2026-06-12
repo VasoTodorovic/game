@@ -32,12 +32,31 @@ export const useCatControls = () => {
   return { getCatDirection }
 }
 
+const DOUBLE_TAP_MS = 300
+
 export const useHeroControls = () => {
   const [heldDirections, setHeldDirections] = useState<Direction[]>([])
+  const sprintRequested = useRef(false)
+  const lastTap = useRef<{ direction: Direction; time: number }>({
+    direction: undefined,
+    time: 0,
+  })
 
   const handleKey = useCallback((e: KeyboardEvent, isKeyDown: boolean) => {
     const direction = DIRECTION_KEYS[e.code]
     if (!direction) return
+
+    // Double-tap same direction → sprint (ignore held-key auto-repeat)
+    if (isKeyDown && !e.repeat) {
+      const now = Date.now()
+      if (
+        lastTap.current.direction === direction &&
+        now - lastTap.current.time < DOUBLE_TAP_MS
+      ) {
+        sprintRequested.current = true
+      }
+      lastTap.current = { direction, time: now }
+    }
 
     setHeldDirections((prev) => {
       if (isKeyDown) {
@@ -65,5 +84,11 @@ export const useHeroControls = () => {
     [heldDirections]
   )
 
-  return { getControlsDirection }
+  const consumeSprintRequest = useCallback(() => {
+    const requested = sprintRequested.current
+    sprintRequested.current = false
+    return requested
+  }, [])
+
+  return { getControlsDirection, consumeSprintRequest }
 }
