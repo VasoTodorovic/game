@@ -3,7 +3,9 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
 export default defineConfig({
-  base: '/', // 👈 Add this line
+  base: '/',
+
+  assetsInclude: ['**/*.mpeg', '**/*.mp3'],
 
   plugins: [react()],
 
