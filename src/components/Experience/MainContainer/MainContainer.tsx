@@ -53,7 +53,6 @@ const CAKE_STARTS = [
 
 const catAlertStyle    = new TextStyle({ fill: 0xffffff, fontSize: 26, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 4 })
 const cakeAlertStyle   = new TextStyle({ fill: 0xffe066, fontSize: 26, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 4 })
-const chaseBannerStyle = new TextStyle({ fill: 0xff4488, fontSize: 30, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 5 })
 const winStyle         = new TextStyle({ fill: 0x00ff88, fontSize: 40, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 5 })
 const scoreStyle       = new TextStyle({ fill: 0xffffff, fontSize: 20, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
 const livesStyle       = new TextStyle({ fill: 0xff4444, fontSize: 22, fontWeight: 'bold', stroke: 0x000000, strokeThickness: 3 })
@@ -254,6 +253,21 @@ export const MainContainer = ({
         })
       }),
     []
+  )
+
+  const chaseBannerStyle = useMemo(
+    () =>
+      new TextStyle({
+        fill: 0xff4488,
+        fontSize: Math.max(16, Math.min(30, canvasSize.width / 24)),
+        fontWeight: 'bold',
+        stroke: 0x000000,
+        strokeThickness: 5,
+        align: 'center',
+        wordWrap: true,
+        wordWrapWidth: canvasSize.width - 32,
+      }),
+    [canvasSize.width]
   )
 
   const drawInstrOverlay = useCallback((g: any) => {
